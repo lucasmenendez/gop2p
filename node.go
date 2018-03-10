@@ -56,7 +56,7 @@ func (n *Node) eventLoop() {
 		case p := <-n.join:
 			if !n.Members.contains(p) && !n.Self.isMe(p) {
 				n.Members = append(n.Members, p)
-				n.Self.log("Connected to [%s](%s)", p.Address, p.Alias)
+				n.Self.log(" 🔌 Connected to [%s](%s)", p.Address, p.Alias)
 				joinEmitter(n, p)
 			}
 		case p := <-n.leave:
@@ -77,9 +77,9 @@ func (n *Node) eventListeners() {
 	n.Self.log("Start listeners...")
 }
 
-func (n *Node) Broadcast(c string) {
-	n.outbox <- msg{n.Self, c}
-	n.Self.log("\t📨 Message has been sent: '%s'", c)
+func (n *Node) Broadcast(p Peer, c string) {
+	n.outbox <- msg{p, c}
+	p.log("📨 Message has been sent: '%s'", c)
 }
 
 func (n *Node) handler(m msg) {

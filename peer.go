@@ -1,7 +1,6 @@
 package p2p
 
 import (
-	"os"
 	"net"
 	"log"
 	"fmt"
@@ -22,21 +21,18 @@ func CreatePeer(a, n string) (p Peer) {
 
 func Me(n string) (p Peer) {
 	var e error
-	var host string
-	if host, e = os.Hostname(); e != nil {
-		return CreatePeer("localhost", n)
-	}
-
-	var addrs []net.IP
-	if addrs, e = net.LookupIP(host); e != nil {
+	var addrs []net.Addr
+	if addrs, e = net.InterfaceAddrs(); e != nil {
 		return CreatePeer("localhost", n)
 	}
 
 	var a string
 	for _, an := range addrs {
-		if ip := an.To4(); ip != nil {
-			a = string(ip)
-			break
+		if ip, ok := an.(*net.IPNet); ok && !ip.IP.IsLoopback() {
+			if ip.IP.To4() != nil {
+				a = ip.IP.String()
+				break
+			}
 		}
 	}
 
