@@ -1,28 +1,28 @@
 package p2p
 
 import (
-	"net/http"
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"bytes"
+	"net/http"
 )
 
 const broadcastPath = "/broadcast"
 const joinPath = "/join"
 const contentType = "application/json"
 const baseUri = "http://%s%s"
-const defaultPort = "5555"
 
 type listener func(http.ResponseWriter, *http.Request)
 type listeners map[string]listener
 
-func (ls listeners) startListen(a string) {
+func (ls listeners) startListen(a string, p int) {
+	var s *http.ServeMux = http.NewServeMux()
 	for r, l := range ls {
-		http.HandleFunc(r, l)
+		s.HandleFunc(r, l)
 	}
 
-	var h string = fmt.Sprintf("%s:%s", a, defaultPort)
-	http.ListenAndServe(h, nil)
+	var h string = fmt.Sprintf("%s:%d", a, p)
+	http.ListenAndServe(h, s)
 }
 
 func joinEmitter(n *Node, p Peer) {
@@ -65,7 +65,7 @@ func joinListener(n *Node) listener {
 			n.join <- p
 			n.update <- true
 			e := json.NewEncoder(w)
-			e.Encode(<- n.sync)
+			e.Encode(<-n.sync)
 		}
 	}
 }

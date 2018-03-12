@@ -1,29 +1,31 @@
 package p2p
 
 import (
-	"net"
-	"log"
 	"fmt"
+	"log"
+	"net"
 )
 
 type Peer struct {
 	Alias   string
+	Port    int
 	Address string
 }
 
-func CreatePeer(a, n string) (p Peer) {
-	p.Address = a
-	p.Alias = n
+func CreatePeer(a, n string, p int) (i Peer) {
+	i.Address = a
+	i.Port = p
+	i.Alias = n
 
-	p.log("Peer created.")
-	return p
+	i.log("Peer created.")
+	return i
 }
 
-func Me(n string) (p Peer) {
+func Me(n string, p int) (me Peer) {
 	var e error
 	var addrs []net.Addr
 	if addrs, e = net.InterfaceAddrs(); e != nil {
-		return CreatePeer("localhost", n)
+		return CreatePeer("localhost", n, p)
 	}
 
 	var a string
@@ -37,10 +39,10 @@ func Me(n string) (p Peer) {
 	}
 
 	if a == "" {
-		return CreatePeer("localhost", n)
+		return CreatePeer("localhost", n, p)
 	}
 
-	return CreatePeer(a, n)
+	return CreatePeer(a, n, p)
 }
 
 func (p Peer) Info() {
@@ -53,7 +55,7 @@ func (p Peer) isMe(c Peer) bool {
 
 func (p Peer) log(m string, args ...interface{}) {
 	m = fmt.Sprintf(m, args...)
-	log.Printf("[%s](%s) - %s\n", p.Address, p.Alias, m)
+	log.Printf("[%s:%d](%s) - %s\n", p.Address, p.Port, p.Alias, m)
 }
 
 type msg struct {

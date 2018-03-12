@@ -6,20 +6,20 @@ type Node struct {
 	Self    Peer
 	Members peers
 
-	inbox chan msg
+	inbox  chan msg
 	outbox chan msg
-	join chan Peer
-	leave chan Peer
+	join   chan Peer
+	leave  chan Peer
 
-	sync chan peers
+	sync   chan peers
 	update chan bool
 
 	callback handler
 }
 
-func New(p Peer) *Node {
+func New(a string, p int) *Node {
 	return &Node{
-		p,
+		Me(a, p),
 		peers{},
 		make(chan msg),
 		make(chan msg),
@@ -40,8 +40,8 @@ func (n *Node) Init() {
 	go n.eventListeners()
 }
 
-func (n *Node) Join(p Peer) {
-	n.join <- p
+func (n *Node) Join(p *Node) {
+	n.join <- p.Self
 }
 
 func (n *Node) eventLoop() {
@@ -56,13 +56,13 @@ func (n *Node) eventLoop() {
 		case p := <-n.join:
 			if !n.Members.contains(p) && !n.Self.isMe(p) {
 				n.Members = append(n.Members, p)
-				n.Self.log(" 🔌 Connected to [%s](%s)", p.Address, p.Alias)
+				n.Self.log(" 🔌 Connected to [%s:%d](%s)", p.Address, p.Port, p.Alias)
 				joinEmitter(n, p)
 			}
 		case p := <-n.leave:
 			n.Members = n.Members.delete(p)
 		case <-n.update:
-			n.sync <-n.Members
+			n.sync <- n.Members
 		}
 	}
 }
@@ -73,27 +73,27 @@ func (n *Node) eventListeners() {
 		joinPath:      joinListener(n),
 	}
 
-	ls.startListen(n.Self.Address)
 	n.Self.log("Start listeners...")
+	ls.startListen(n.Self.Address, n.Self.Port)
 }
 
-func (n *Node) Broadcast(p Peer, c string) {
-	n.outbox <- msg{p, c}
-	p.log("📨 Message has been sent: '%s'", c)
+func (n *Node) Broadcast(c string) {
+	n.outbox <- msg{n.Self, c}
+	n.Self.log("📨 Message has been sent: '%s'", c)
 }
 
 func (n *Node) handler(m msg) {
 	if !n.Self.isMe(m.from) {
 		if n.callback != nil {
-			var info map[string]string = map[string]string {
+			var info map[string]string = map[string]string{
 				"Address": m.from.Address,
-				"Alias": m.from.Alias,
+				"Alias":   m.from.Alias,
 				"content": m.content,
 			}
 			n.callback(info)
 		} else {
-			n.Self.log("\t📩 Message received from [%s](%s): '%s'",
-				m.from.Address, m.from.Alias, m.content)
+			n.Self.log("\t📩 Message received from [%s:%d](%s): '%s'",
+				m.from.Address, m.from.Port, m.from.Alias, m.content)
 		}
 	}
 }
