@@ -1,4 +1,4 @@
-package p2p
+package gop2p
 
 type handler func(t interface{})
 
@@ -6,8 +6,8 @@ type Node struct {
 	Self    Peer
 	Members peers
 
-	inbox  chan msg
-	outbox chan msg
+	inbox  chan Msg
+	outbox chan Msg
 	join   chan Peer
 	leave  chan Peer
 
@@ -17,25 +17,28 @@ type Node struct {
 	callback handler
 }
 
-func New(a string, p int) *Node {
-	return &Node{
+func InitNode(a string, p int) (n *Node) {
+	n = &Node{
 		Me(a, p),
 		peers{},
-		make(chan msg),
-		make(chan msg),
+		make(chan Msg),
+		make(chan Msg),
 		make(chan Peer),
 		make(chan Peer),
 		make(chan peers),
 		make(chan bool),
 		nil,
 	}
+
+	n.startService()
+	return n
 }
 
 func (n *Node) SetCallback(c handler) {
 	n.callback = c
 }
 
-func (n *Node) Init() {
+func (n *Node) startService() {
 	go n.eventLoop()
 	go n.eventListeners()
 }
@@ -50,17 +53,23 @@ func (n *Node) eventLoop() {
 	for {
 		select {
 		case m := <-n.inbox:
-			n.handler(m)
+			if !n.Self.isMe(m.From) {
+				go n.handler(m)
+			}
+
 		case m := <-n.outbox:
-			outboxEmitter(m, n.Members)
+			go outboxEmitter(m, n.Members)
+
 		case p := <-n.join:
 			if !n.Members.contains(p) && !n.Self.isMe(p) {
 				n.Members = append(n.Members, p)
 				n.Self.log(" 🔌 Connected to [%s:%d](%s)", p.Address, p.Port, p.Alias)
-				joinEmitter(n, p)
+				go joinEmitter(n, p)
 			}
+
 		case p := <-n.leave:
 			n.Members = n.Members.delete(p)
+
 		case <-n.update:
 			n.sync <- n.Members
 		}
@@ -75,25 +84,26 @@ func (n *Node) eventListeners() {
 
 	n.Self.log("Start listeners...")
 	ls.startListen(n.Self.Address, n.Self.Port)
+	n.Self.log("Listen at %s:%d", n.Self.Address, n.Self.Port)
 }
 
 func (n *Node) Broadcast(c string) {
-	n.outbox <- msg{n.Self, c}
+	n.outbox <- Msg{n.Self, c}
 	n.Self.log("📨 Message has been sent: '%s'", c)
 }
 
-func (n *Node) handler(m msg) {
-	if !n.Self.isMe(m.from) {
+func (n *Node) handler(m Msg) {
+	if !n.Self.isMe(m.From) {
 		if n.callback != nil {
 			var info map[string]string = map[string]string{
-				"Address": m.from.Address,
-				"Alias":   m.from.Alias,
-				"content": m.content,
+				"Address": m.From.Address,
+				"Alias":   m.From.Alias,
+				"Content": m.Content,
 			}
 			n.callback(info)
 		} else {
-			n.Self.log("\t📩 Message received from [%s:%d](%s): '%s'",
-				m.from.Address, m.from.Port, m.from.Alias, m.content)
+			n.Self.log("\t📩 Message received From [%s:%d](%s): '%s'",
+				m.From.Address, m.From.Port, m.From.Alias, m.Content)
 		}
 	}
 }

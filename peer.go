@@ -1,4 +1,4 @@
-package p2p
+package gop2p
 
 import (
 	"fmt"
@@ -6,11 +6,18 @@ import (
 	"net"
 )
 
-type Peer struct {
-	Alias   string
-	Port    int
-	Address string
+type Msg struct {
+	From    Peer   `json:"From"`
+	Content string `json:"Content"`
 }
+
+type Peer struct {
+	Alias   string `json:"alias"`
+	Port    int `json:"port"`
+	Address string `json:"address"`
+}
+
+type peers []Peer
 
 func CreatePeer(a, n string, p int) (i Peer) {
 	i.Address = a
@@ -50,20 +57,13 @@ func (p Peer) Info() {
 }
 
 func (p Peer) isMe(c Peer) bool {
-	return p.Alias == c.Alias && p.Address == c.Alias
+	return p.Alias == c.Alias && p.Address == c.Alias && p.Port == c.Port
 }
 
 func (p Peer) log(m string, args ...interface{}) {
 	m = fmt.Sprintf(m, args...)
 	log.Printf("[%s:%d](%s) - %s\n", p.Address, p.Port, p.Alias, m)
 }
-
-type msg struct {
-	from    Peer
-	content string
-}
-
-type peers []Peer
 
 func (ps peers) contains(p Peer) bool {
 	for _, pn := range ps {
