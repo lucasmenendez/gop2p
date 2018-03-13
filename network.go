@@ -25,7 +25,7 @@ func (ls listeners) startListen(a string, p int) {
 	http.ListenAndServe(h, s)
 }
 
-func joinEmitter(n *Node, p Peer) {
+func joinEmitter(n *Node, p peer) {
 	if j, e := json.Marshal(n.Self); e == nil {
 		var uri string = fmt.Sprintf(baseUri, p.Address, p.Port, joinPath)
 
@@ -54,11 +54,11 @@ func joinEmitter(n *Node, p Peer) {
 func joinListener(n *Node) listener {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
-			var p Peer = Peer{}
+			var p peer = peer{}
 
 			d := json.NewDecoder(r.Body)
 			if e := d.Decode(&p); e != nil {
-				n.Self.log("\t‼️ Error decoding Peer joins: %s", e.Error())
+				n.Self.log("\t‼️ Error decoding peer joins: %s", e.Error())
 				return
 			}
 
@@ -70,7 +70,7 @@ func joinListener(n *Node) listener {
 	}
 }
 
-func outboxEmitter(m Msg, ls peers) {
+func outboxEmitter(m msg, ls peers) {
 	for _, p := range ls {
 		var u string = fmt.Sprintf(baseUri, p.Address, p.Port, broadcastPath)
 
@@ -87,7 +87,7 @@ func outboxEmitter(m Msg, ls peers) {
 
 func inboxListener(n *Node) listener {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var msg Msg = Msg{}
+		var msg msg = msg{}
 
 		d := json.NewDecoder(r.Body)
 		if e := d.Decode(&msg); e != nil {

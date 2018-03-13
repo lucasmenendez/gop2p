@@ -3,13 +3,13 @@ package gop2p
 type handler func(t interface{})
 
 type Node struct {
-	Self    Peer
-	Members peers
+	Self    peer
+	members peers
 
-	inbox  chan Msg
-	outbox chan Msg
-	join   chan Peer
-	leave  chan Peer
+	inbox  chan msg
+	outbox chan msg
+	join   chan peer
+	leave  chan peer
 
 	sync   chan peers
 	update chan bool
@@ -21,10 +21,10 @@ func InitNode(a string, p int) (n *Node) {
 	n = &Node{
 		Me(a, p),
 		peers{},
-		make(chan Msg),
-		make(chan Msg),
-		make(chan Peer),
-		make(chan Peer),
+		make(chan msg),
+		make(chan msg),
+		make(chan peer),
+		make(chan peer),
 		make(chan peers),
 		make(chan bool),
 		nil,
@@ -58,20 +58,20 @@ func (n *Node) eventLoop() {
 			}
 
 		case m := <-n.outbox:
-			go outboxEmitter(m, n.Members)
+			go outboxEmitter(m, n.members)
 
 		case p := <-n.join:
-			if !n.Members.contains(p) && !n.Self.isMe(p) {
-				n.Members = append(n.Members, p)
+			if !n.members.contains(p) && !n.Self.isMe(p) {
+				n.members = append(n.members, p)
 				n.Self.log(" 🔌 Connected to [%s:%d](%s)", p.Address, p.Port, p.Alias)
 				go joinEmitter(n, p)
 			}
 
 		case p := <-n.leave:
-			n.Members = n.Members.delete(p)
+			n.members = n.members.delete(p)
 
 		case <-n.update:
-			n.sync <- n.Members
+			n.sync <- n.members
 		}
 	}
 }
@@ -88,11 +88,11 @@ func (n *Node) eventListeners() {
 }
 
 func (n *Node) Broadcast(c string) {
-	n.outbox <- Msg{n.Self, c}
+	n.outbox <- msg{n.Self, c}
 	n.Self.log("📨 Message has been sent: '%s'", c)
 }
 
-func (n *Node) handler(m Msg) {
+func (n *Node) handler(m msg) {
 	if !n.Self.isMe(m.From) {
 		if n.callback != nil {
 			var info map[string]string = map[string]string{

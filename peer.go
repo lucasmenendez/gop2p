@@ -6,29 +6,29 @@ import (
 	"net"
 )
 
-type Msg struct {
-	From    Peer   `json:"From"`
+type msg struct {
+	From    peer   `json:"From"`
 	Content string `json:"Content"`
 }
 
-type Peer struct {
+type peer struct {
 	Alias   string `json:"alias"`
 	Port    int `json:"port"`
 	Address string `json:"address"`
 }
 
-type peers []Peer
+type peers []peer
 
-func CreatePeer(a, n string, p int) (i Peer) {
+func CreatePeer(a, n string, p int) (i peer) {
 	i.Address = a
 	i.Port = p
 	i.Alias = n
 
-	i.log("Peer created.")
+	i.log("peer created.")
 	return i
 }
 
-func Me(n string, p int) (me Peer) {
+func Me(n string, p int) (me peer) {
 	var e error
 	var addrs []net.Addr
 	if addrs, e = net.InterfaceAddrs(); e != nil {
@@ -52,20 +52,20 @@ func Me(n string, p int) (me Peer) {
 	return CreatePeer(a, n, p)
 }
 
-func (p Peer) Info() {
+func (p peer) Info() {
 	p.log("Here I am!")
 }
 
-func (p Peer) isMe(c Peer) bool {
+func (p peer) isMe(c peer) bool {
 	return p.Alias == c.Alias && p.Address == c.Alias && p.Port == c.Port
 }
 
-func (p Peer) log(m string, args ...interface{}) {
+func (p peer) log(m string, args ...interface{}) {
 	m = fmt.Sprintf(m, args...)
 	log.Printf("[%s:%d](%s) - %s\n", p.Address, p.Port, p.Alias, m)
 }
 
-func (ps peers) contains(p Peer) bool {
+func (ps peers) contains(p peer) bool {
 	for _, pn := range ps {
 		if pn.Address == p.Address && pn.Alias == p.Alias {
 			return true
@@ -75,7 +75,7 @@ func (ps peers) contains(p Peer) bool {
 	return false
 }
 
-func (ps peers) delete(p Peer) (r peers) {
+func (ps peers) delete(p peer) (r peers) {
 	for _, pn := range ps {
 		if pn.Address != p.Address || pn.Alias != p.Alias {
 			r = append(r, pn)
