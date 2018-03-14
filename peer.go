@@ -1,3 +1,4 @@
+// gop2p package implements simple Peer-to-Peer network node in pure Go.
 package gop2p
 
 import (
@@ -6,19 +7,33 @@ import (
 	"net"
 )
 
+// msg struct contains message information: emitter peer and content.
 type msg struct {
-	From    peer   `json:"From"`
-	Content string `json:"Content"`
+	From    peer   `json:"from"`
+	Content string `json:"content"`
 }
 
+// toMap function returns a structured map with message information formatted.
+func (m msg) toMap() map[string]interface{} {
+	return map[string]interface{}{
+		"from": map[string]interface{}{
+			"adress": m.From.Address,
+			"alias":  m.From.Alias,
+			"port":   m.From.Port,
+		},
+		"content": m.Content,
+	}
+}
+
+// peer struct contains peer alias, ip address and tcp port to communicate with.
 type peer struct {
 	Alias   string `json:"alias"`
 	Port    int    `json:"port"`
 	Address string `json:"address"`
 }
 
-type peers []peer
-
+// CreatePeer function returns defined peer based on peer alias, ip address and
+// tcp port provided.
 func CreatePeer(a, n string, p int) (i peer) {
 	i.Address = a
 	i.Port = p
@@ -26,6 +41,8 @@ func CreatePeer(a, n string, p int) (i peer) {
 	return i
 }
 
+// Me function involves CreatePeer function getting current host ip address
+// previously.
 func Me(n string, p int) (me peer) {
 	var e error
 	var addrs []net.Addr
@@ -50,15 +67,22 @@ func Me(n string, p int) (me peer) {
 	return CreatePeer(a, n, p)
 }
 
+// isMe function compare current peer with other to check if both peers are
+// equal.
 func (p peer) isMe(c peer) bool {
 	return p.Alias == c.Alias && p.Address == c.Address && p.Port == c.Port
 }
 
+// log function logs message provided formated and adding peer information trace.
 func (p peer) log(m string, args ...interface{}) {
 	m = fmt.Sprintf(m, args...)
 	log.Printf("[%s:%d](%s) - %s\n", p.Address, p.Port, p.Alias, m)
 }
 
+// peers involves list of peer
+type peers []peer
+
+// contains function return if current list of peer contains other provided.
 func (ps peers) contains(p peer) bool {
 	for _, pn := range ps {
 		if pn.Address == p.Address && pn.Alias == p.Alias {
@@ -69,6 +93,8 @@ func (ps peers) contains(p peer) bool {
 	return false
 }
 
+// delete function returns a copy of current list of peer removing peer provided
+// previously.
 func (ps peers) delete(p peer) (r peers) {
 	for _, pn := range ps {
 		if pn.Address != p.Address || pn.Alias != p.Alias {
