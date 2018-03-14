@@ -23,7 +23,7 @@ func (ls listeners) startListen(n *Node) {
 	}
 
 	var h string = fmt.Sprintf("%s:%d", n.Self.Address, n.Self.Port)
-	n.server  = &http.Server{ Addr: h, Handler: s }
+	n.server = &http.Server{Addr: h, Handler: s}
 	go func() {
 		if e := http.ListenAndServe(h, s); e != nil {
 			n.Self.log("‼️ Error sending join: %s", e.Error())

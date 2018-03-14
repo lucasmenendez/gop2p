@@ -13,7 +13,7 @@ type msg struct {
 
 type peer struct {
 	Alias   string `json:"alias"`
-	Port    int `json:"port"`
+	Port    int    `json:"port"`
 	Address string `json:"address"`
 }
 
@@ -48,10 +48,6 @@ func Me(n string, p int) (me peer) {
 	}
 
 	return CreatePeer(a, n, p)
-}
-
-func (p peer) Info() {
-	p.log("Here I am!")
 }
 
 func (p peer) isMe(c peer) bool {

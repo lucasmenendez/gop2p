@@ -24,7 +24,7 @@ func main() {
     
     go func() {
         _main := main.Self
-        //_main := gop2p.Me("main", 5002)
+        //_main := gop2p.Me("main", 5001)
         
         time.Sleep(time.Second)
         node := gop2p.InitNode("peer", 5002)

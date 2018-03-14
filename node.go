@@ -1,8 +1,8 @@
 package gop2p
 
 import (
-	"sync"
 	"net/http"
+	"sync"
 )
 
 type Handler func(t interface{})
@@ -21,7 +21,7 @@ type Node struct {
 	sync   chan peers
 	update chan bool
 
-	exit chan bool
+	exit   chan bool
 	waiter *sync.WaitGroup
 
 	callback Handler
@@ -29,18 +29,16 @@ type Node struct {
 
 func InitNode(a string, p int) (n *Node) {
 	n = &Node{
-		Me(a, p),
-		peers{},
-		nil,
-		make(chan msg),
-		make(chan msg),
-		make(chan peer),
-		make(chan peer),
-		make(chan peers),
-		make(chan bool),
-		make(chan bool),
-		&sync.WaitGroup{},
-		nil,
+		Self:    Me(a, p),
+		Members: peers{},
+		inbox:   make(chan msg),
+		outbox:  make(chan msg),
+		join:    make(chan peer),
+		leave:   make(chan peer),
+		sync:    make(chan peers),
+		update:  make(chan bool),
+		exit:    make(chan bool),
+		waiter:  &sync.WaitGroup{},
 	}
 
 	n.startService()
@@ -119,7 +117,7 @@ func (n *Node) eventLoop() {
 func (n *Node) eventListeners() {
 	var ls listeners = listeners{
 		joinPath:      joinListener(n),
-		leavePath:      leaveListener(n),
+		leavePath:     leaveListener(n),
 		broadcastPath: inboxListener(n),
 	}
 
