@@ -20,12 +20,12 @@ func main() {
     defer main.Wait()
     
     go func() {
-        entry := main.Self
-        //entry := gop2p.Me("peer", 5002)
+        _main := main.Self
+        //_main := gop2p.Me("main", 5002)
         
         time.Sleep(time.Second)
         node := gop2p.InitNode("peer", 5002)
-        node.Connect(entry)
+        node.Connect(_main)
         defer node.Wait()
         
         time.Sleep(2 * time.Second)
