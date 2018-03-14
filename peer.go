@@ -1,4 +1,4 @@
-// gop2p package implements simple Peer-to-Peer network node in pure Go.
+// Package gop2p implements simple Peer-to-Peer network node in pure Go.
 package gop2p
 
 import (
@@ -17,7 +17,7 @@ type msg struct {
 func (m msg) toMap() map[string]interface{} {
 	return map[string]interface{}{
 		"from": map[string]interface{}{
-			"adress": m.From.Address,
+			"address": m.From.Address,
 			"alias":  m.From.Alias,
 			"port":   m.From.Port,
 		},
