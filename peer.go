@@ -23,8 +23,6 @@ func CreatePeer(a, n string, p int) (i peer) {
 	i.Address = a
 	i.Port = p
 	i.Alias = n
-
-	i.log("peer created.")
 	return i
 }
 
@@ -57,7 +55,7 @@ func (p peer) Info() {
 }
 
 func (p peer) isMe(c peer) bool {
-	return p.Alias == c.Alias && p.Address == c.Alias && p.Port == c.Port
+	return p.Alias == c.Alias && p.Address == c.Address && p.Port == c.Port
 }
 
 func (p peer) log(m string, args ...interface{}) {
