@@ -18,8 +18,8 @@ func (m msg) toMap() map[string]interface{} {
 	return map[string]interface{}{
 		"from": map[string]interface{}{
 			"address": m.From.Address,
-			"alias":  m.From.Alias,
-			"port":   m.From.Port,
+			"alias":   m.From.Alias,
+			"port":    m.From.Port,
 		},
 		"content": m.Content,
 	}
