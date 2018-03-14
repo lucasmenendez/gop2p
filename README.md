@@ -53,3 +53,8 @@ func main() {
     main.Leave()
 }
 ```
+
+## TODO
+
+- [ ] Design tests
+- [ ] Integrate Travis-ci.org
