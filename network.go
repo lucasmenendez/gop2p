@@ -1,4 +1,3 @@
-// Package gop2p implements simple Peer-to-Peer network node in pure Go.
 package gop2p
 
 import (
