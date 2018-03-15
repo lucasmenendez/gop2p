@@ -24,7 +24,7 @@ func (m msg) toMap() map[string]interface{} {
 	}
 }
 
-// peer struct contains peer alias, ip address and tcp port to communicate with.
+// peer struct contains peer alias, ip address and port to communicate with.
 type peer struct {
 	Alias   string `json:"alias"`
 	Port    int    `json:"port"`
@@ -32,7 +32,7 @@ type peer struct {
 }
 
 // CreatePeer function returns defined peer based on peer alias, ip address and
-// tcp port provided.
+// port provided.
 func CreatePeer(a, n string, p int) (i peer) {
 	i.Address = a
 	i.Port = p

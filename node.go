@@ -154,5 +154,5 @@ func (n *Node) eventListeners() {
 
 	n.Self.log("⌛️ Start listeners...")
 	n.Self.log("👂 Listen at %s:%d", n.Self.Address, n.Self.Port)
-	go ls.startListen(n)
+	ls.startListen(n)
 }
