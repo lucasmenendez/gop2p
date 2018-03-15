@@ -57,5 +57,5 @@ func main() {
 ## TODO
 
 - [ ] Design tests
-- [ ] Port to TCP
 - [ ] Integrate Travis-ci.org
+- [ ] [serf.io](https://www.serf.io/)
