@@ -1,9 +1,8 @@
 package gop2p
 
 import (
-	"fmt"
-	"log"
 	"net"
+	"fmt"
 )
 
 // msg struct contains message information: emitter peer and content.
@@ -15,11 +14,7 @@ type msg struct {
 // toMap function returns a structured map with message information formatted.
 func (m msg) toMap() map[string]interface{} {
 	return map[string]interface{}{
-		"from": map[string]interface{}{
-			"address": m.From.Address,
-			"alias":   m.From.Alias,
-			"port":    m.From.Port,
-		},
+		"from": m.From.toMap(),
 		"content": m.Content,
 	}
 }
@@ -37,16 +32,18 @@ func CreatePeer(a, n string, p int) (i peer) {
 	i.Address = a
 	i.Port = p
 	i.Alias = n
-	return i
+	return
 }
 
 // Me function involves CreatePeer function getting current host ip address
 // previously.
 func Me(n string, p int) (me peer) {
+	me = CreatePeer("localhost", n, p)
+
 	var e error
 	var addrs []net.Addr
 	if addrs, e = net.InterfaceAddrs(); e != nil {
-		return CreatePeer("localhost", n, p)
+		return
 	}
 
 	var a string
@@ -59,11 +56,11 @@ func Me(n string, p int) (me peer) {
 		}
 	}
 
-	if a == "" {
-		return CreatePeer("localhost", n, p)
+	if a != "" {
+		me.Address = a
 	}
 
-	return CreatePeer(a, n, p)
+	return
 }
 
 // isMe function compare current peer with other to check if both peers are
@@ -72,10 +69,13 @@ func (p peer) isMe(c peer) bool {
 	return p.Alias == c.Alias && p.Address == c.Address && p.Port == c.Port
 }
 
-// log function logs message provided formated and adding peer information trace.
-func (p peer) log(m string, args ...interface{}) {
-	m = fmt.Sprintf(m, args...)
-	log.Printf("[%s:%d](%s) - %s\n", p.Address, p.Port, p.Alias, m)
+// toMap function returns a structured map with peer information formatted.
+func (p peer) toMap() map[string]interface{} {
+	return map[string]interface{}{
+		"address": p.Address,
+		"alias":   p.Alias,
+		"port":    fmt.Sprintf("%d", p.Port),
+	}
 }
 
 // peers involves list of peer
@@ -101,5 +101,5 @@ func (ps peers) delete(p peer) (r peers) {
 		}
 	}
 
-	return r
+	return
 }

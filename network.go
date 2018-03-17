@@ -40,7 +40,7 @@ func (ls listeners) startListen(n *Node) {
 	n.server = &http.Server{Addr: h, Handler: s}
 	go func() {
 		if e := http.ListenAndServe(h, s); e != nil {
-			n.Self.log("‼️ Error sending join: %s", e.Error())
+			n.log("‼️ Error sending join: %s", e.Error())
 			n.exit <- true
 		}
 	}()
@@ -56,7 +56,7 @@ func joinEmitter(n *Node, p peer) {
 		var r *http.Response
 		var b *bytes.Buffer = bytes.NewBuffer(j)
 		if r, e = http.Post(u, contentType, b); e != nil {
-			n.Self.log("‼️ Error sending join: %s", e.Error())
+			n.log("‼️ Error sending join: %s", e.Error())
 			n.leave <- p
 		}
 
@@ -65,7 +65,7 @@ func joinEmitter(n *Node, p peer) {
 
 		d := json.NewDecoder(r.Body)
 		if e := d.Decode(&ps); e != nil {
-			n.Self.log("‼️ Error decoding new peers: %s", e.Error())
+			n.log("‼️ Error decoding new peers: %s", e.Error())
 			n.leave <- p
 		}
 
@@ -86,7 +86,7 @@ func leaveEmitter(n *Node) {
 			var r *http.Response
 			var b *bytes.Buffer = bytes.NewBuffer(j)
 			if r, e = http.Post(u, contentType, b); e != nil {
-				n.Self.log("‼️ Error sending join: %s", e.Error())
+				n.log("‼️ Error sending join: %s", e.Error())
 				n.leave <- p
 			}
 
@@ -102,9 +102,9 @@ func outboxEmitter(n *Node, m msg) {
 		var u string = fmt.Sprintf(baseUri, p.Address, p.Port, broadcastPath)
 
 		if d, e := json.Marshal(m); e != nil {
-			n.Self.log("‼️ Error decoding message output: %s", e.Error())
+			n.log("‼️ Error decoding message output: %s", e.Error())
 		} else if _, e = http.Post(u, contentType, bytes.NewBuffer(d)); e != nil {
-			n.Self.log("‼️ Error connecting: %s", e.Error())
+			n.log("‼️ Error connecting: %s", e.Error())
 			n.leave <- p
 		}
 	}
@@ -120,7 +120,7 @@ func joinListener(n *Node) listener {
 
 			d := json.NewDecoder(r.Body)
 			if e := d.Decode(&p); e != nil {
-				n.Self.log("‼️ Error decoding peer joins: %s", e.Error())
+				n.log("‼️ Error decoding peer joins: %s", e.Error())
 				return
 			}
 
@@ -141,7 +141,7 @@ func leaveListener(n *Node) listener {
 
 			d := json.NewDecoder(r.Body)
 			if e := d.Decode(&p); e != nil {
-				n.Self.log("‼️ Error decoding peer leaves: %s", e.Error())
+				n.log("‼️ Error decoding peer leaves: %s", e.Error())
 				return
 			}
 
@@ -158,7 +158,7 @@ func inboxListener(n *Node) listener {
 
 		d := json.NewDecoder(r.Body)
 		if e := d.Decode(&msg); e != nil {
-			n.Self.log("‼️ Error decoding incoming message: %s", e.Error())
+			n.log("‼️ Error decoding incoming message: %s", e.Error())
 			return
 		}
 
