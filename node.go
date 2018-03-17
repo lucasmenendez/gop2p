@@ -81,9 +81,9 @@ func (n *Node) Wait() {
 	n.waiter.Wait()
 }
 
-// Connect function allows node to connect to a network via entry Peer
+// Join function allows node to connect to a network via entry Peer
 // reference, that contains its information.
-func (n *Node) Connect(p Peer) {
+func (n *Node) Join(p Peer) {
 	n.join <- p
 }
 
