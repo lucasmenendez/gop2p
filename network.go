@@ -46,10 +46,10 @@ func (ls listeners) startListen(n *Node) {
 	}()
 }
 
-// joinEmitter function make a POST HTTP request to external peer to connect
+// joinEmitter function make a POST HTTP request to external Peer to connect
 // with their network. If request is successfully, response contains a list of
 // network nodes, function iterate over this nodes and communicate node join.
-func joinEmitter(n *Node, p peer) {
+func joinEmitter(n *Node, p Peer) {
 	if j, e := json.Marshal(n.Self); e == nil {
 		var u string = fmt.Sprintf(baseUri, p.Address, p.Port, joinPath)
 
@@ -76,8 +76,8 @@ func joinEmitter(n *Node, p peer) {
 }
 
 // leaveEmitter function send to all node members list a message that contains
-// peer information to their leavePath of each node. Then, communicates to the
-// eventLoop that peer leave has been broadcasting.
+// Peer information to their leavePath of each node. Then, communicates to the
+// eventLoop that Peer leave has been broadcasting.
 func leaveEmitter(n *Node) {
 	if j, e := json.Marshal(n.Self); e == nil {
 		for _, p := range n.Members {
@@ -97,7 +97,7 @@ func leaveEmitter(n *Node) {
 
 // outboxEmitter function send message struct to all node members list to node
 // broadcast path.
-func outboxEmitter(n *Node, m msg) {
+func outboxEmitter(n *Node, m Message) {
 	for _, p := range n.Members {
 		var u string = fmt.Sprintf(baseUri, p.Address, p.Port, broadcastPath)
 
@@ -116,11 +116,11 @@ func outboxEmitter(n *Node, m msg) {
 func joinListener(n *Node) listener {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
-			var p peer = peer{}
+			var p Peer = Peer{}
 
 			d := json.NewDecoder(r.Body)
 			if e := d.Decode(&p); e != nil {
-				n.log("‼️ Error decoding peer joins: %s", e.Error())
+				n.log("‼️ Error decoding Peer joins: %s", e.Error())
 				return
 			}
 
@@ -132,16 +132,16 @@ func joinListener(n *Node) listener {
 	}
 }
 
-// leaveListener function listens for peer network leaves and communicate it to
+// leaveListener function listens for Peer network leaves and communicate it to
 // the eventLoop.
 func leaveListener(n *Node) listener {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
-			var p peer = peer{}
+			var p Peer = Peer{}
 
 			d := json.NewDecoder(r.Body)
 			if e := d.Decode(&p); e != nil {
-				n.log("‼️ Error decoding peer leaves: %s", e.Error())
+				n.log("‼️ Error decoding Peer leaves: %s", e.Error())
 				return
 			}
 
@@ -154,7 +154,7 @@ func leaveListener(n *Node) listener {
 // to the eventLoop.
 func inboxListener(n *Node) listener {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var msg msg = msg{}
+		var msg Message = Message{}
 
 		d := json.NewDecoder(r.Body)
 		if e := d.Decode(&msg); e != nil {
