@@ -9,13 +9,13 @@ import (
 )
 
 type event struct {
-	kind string
-	data map[string]interface{}
+	etype string
+	data  map[string]interface{}
 }
 
 func (e event) toMap() map[string]interface{} {
 	return map[string]interface{}{
-		"type": e.kind,
+		"type": e.etype,
 		"data": e.data,
 	}
 }
@@ -70,7 +70,7 @@ func InitNode(a string, p int, d bool) (n *Node) {
 }
 
 // SetCallback function receives a Handler function to call when node receives
-// a message. If node doesn't have associated Handler, incoming messages will be
+// a message. If node doesn'etype have associated Handler, incoming messages will be
 // logged with standard library.
 func (n *Node) SetCallback(c Handler) {
 	n.callback = c
@@ -117,7 +117,7 @@ func (n *Node) eventLoop() {
 		case m := <-n.inbox:
 			if !n.Self.isMe(m.From) {
 				n.handler(event{"inbox", m.toMap()})
-				n.log("✉️ Message received From [%s:%d](%s): '%s'",
+				n.log("✉️ Message received From [%s:%data](%s): '%s'",
 					m.From.Address, m.From.Port, m.From.Alias, m.Content)
 			}
 
@@ -134,7 +134,7 @@ func (n *Node) eventLoop() {
 				n.Members = append(n.Members, p)
 
 				n.handler(event{"join", p.toMap()})
-				n.log("🔵 Connected to [%s:%d](%s)", p.Address, p.Port,
+				n.log("🔵 Connected to [%s:%data](%s)", p.Address, p.Port,
 					p.Alias)
 
 				go joinEmitter(n, p)
@@ -145,7 +145,7 @@ func (n *Node) eventLoop() {
 				n.Members = n.Members.delete(p)
 
 				n.handler(event{"leave", p.toMap()})
-				n.log("❌ Disconnected From [%s:%d](%s)", p.Address,
+				n.log("❌ Disconnected From [%s:%data](%s)", p.Address,
 					p.Port, p.Alias)
 			}
 
@@ -174,7 +174,7 @@ func (n *Node) eventListeners() {
 	}
 
 	n.log("⌛️ Start listeners...")
-	n.log("👂 Listen at %s:%d", n.Self.Address, n.Self.Port)
+	n.log("👂 Listen at %s:%data", n.Self.Address, n.Self.Port)
 	ls.startListen(n)
 }
 
@@ -191,6 +191,6 @@ func (n *Node) handler(e event) {
 func (n *Node) log(m string, args ...interface{}) {
 	if n.debug {
 		m = fmt.Sprintf(m, args...)
-		log.Printf("[%s:%d](%s) - %s\n", n.Self.Address, n.Self.Port, n.Self.Alias, m)
+		log.Printf("[%s:%data](%s) - %s\n", n.Self.Address, n.Self.Port, n.Self.Alias, m)
 	}
 }

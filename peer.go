@@ -74,7 +74,7 @@ func (p Peer) toMap() map[string]interface{} {
 	return map[string]interface{}{
 		"address": p.Address,
 		"alias":   p.Alias,
-		"port":    fmt.Sprintf("%d", p.Port),
+		"port":    fmt.Sprintf("%data", p.Port),
 	}
 }
 

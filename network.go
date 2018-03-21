@@ -8,7 +8,7 @@ import (
 )
 
 // baseUri contains node address template
-const baseUri string = "http://%s:%d%s"
+const baseUri string = "http://%s:%data%s"
 
 // joinPath contains node route where listen for node join.
 const joinPath string = "/join"
@@ -36,7 +36,7 @@ func (ls listeners) startListen(n *Node) {
 		s.HandleFunc(r, l)
 	}
 
-	var h string = fmt.Sprintf("%s:%d", n.Self.Address, n.Self.Port)
+	var h string = fmt.Sprintf("%s:%data", n.Self.Address, n.Self.Port)
 	n.server = &http.Server{Addr: h, Handler: s}
 	go func() {
 		if e := http.ListenAndServe(h, s); e != nil {
