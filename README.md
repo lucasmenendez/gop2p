@@ -21,7 +21,7 @@ import (
 )
 
 func main() {
-    main := gop2p.InitNode("main", 5001)
+    main := gop2p.InitNode("main", 5001, true)
     defer main.Wait()
     
     go func() {
@@ -29,8 +29,8 @@ func main() {
         //_main := gop2p.Me("main", 5001)
         
         time.Sleep(time.Second)
-        node := gop2p.InitNode("peer", 5002)
-        node.Connect(_main)
+        node := gop2p.InitNode("peer", 5002, true)
+        node.Join(_main)
         defer node.Wait()
         
         time.Sleep(2 * time.Second)
