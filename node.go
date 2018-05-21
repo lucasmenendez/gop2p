@@ -8,20 +8,8 @@ import (
 	"sync"
 )
 
-type event struct {
-	etype string
-	data  map[string]interface{}
-}
-
-func (e event) toMap() map[string]interface{} {
-	return map[string]interface{}{
-		"type": e.etype,
-		"data": e.data,
-	}
-}
-
 // Handler type involves function to new messages handling.
-type Handler func(d map[string]interface{})
+type Handler func(m []byte)
 
 // Node struct contains self Peer reference and list of network members. Also
 // contains reference to HTTP server node instance and all channels to
@@ -30,7 +18,7 @@ type Node struct {
 	Self    Peer
 	Members peers
 
-	server *http.Server
+	network *Network
 
 	inbox  chan Message
 	outbox chan Message
@@ -50,9 +38,9 @@ type Node struct {
 // InitNode function initializes a Peer with current host information and
 // creates required channels and structs. Then starts services (listeners and
 // HTTP Server) and return node reference.
-func InitNode(a string, p int, d bool) (n *Node) {
+func InitNode(p int, d bool) (n *Node) {
 	n = &Node{
-		Self:    Me(a, p),
+		Self:    Me(p),
 		Members: peers{},
 		inbox:   make(chan Message),
 		outbox:  make(chan Message),
@@ -70,7 +58,7 @@ func InitNode(a string, p int, d bool) (n *Node) {
 }
 
 // SetCallback function receives a Handler function to call when node receives
-// a message. If node doesn'etype have associated Handler, incoming messages will be
+// a message. If node doesn't have associated Handler, incoming messages will be
 // logged with standard library.
 func (n *Node) SetCallback(c Handler) {
 	n.callback = c
@@ -94,9 +82,9 @@ func (n *Node) Leave() {
 
 // Broadcast function emmit message to the network passing received Content to
 // broadcasting service.
-func (n *Node) Broadcast(c string) {
+func (n *Node) Broadcast(c []byte) {
 	n.outbox <- Message{n.Self, c}
-	n.log("💬 Message has been sent: '%s'", c)
+	n.log("Message has been sent: '%s'", c)
 }
 
 // startService function adds 1 to node WaitGroup and starts eventLoop and
@@ -110,43 +98,36 @@ func (n *Node) startService() {
 // eventLoop function contains main loop. Into main loop, each channel is
 // checked and executes the corresponding functions.
 func (n *Node) eventLoop() {
-	n.log("⌛️ Start event loop...")
+	n.log("Start event loop...")
 
 	for {
 		select {
 		case m := <-n.inbox:
 			if !n.Self.isMe(m.From) {
-				n.handler(event{"inbox", m.toMap()})
-				n.log("✉️ Message received From [%s:%d](%s): '%s'",
-					m.From.Address, m.From.Port, m.From.Alias, m.Content)
+				n.handler(m)
+				n.log("Message received From [%s:%s]: '%s'",
+					m.From.Address, m.From.Port, m.Content)
 			}
 
 		case m := <-n.outbox:
-			n.handler(event{"outbox", m.toMap()})
 			if len(n.Members) > 0 {
 				go outboxEmitter(n, m)
 			} else {
-				n.log("⚠️ Broadcasting aborted. Empty network!")
+				n.log("Broadcasting aborted. Empty network!")
 			}
 
 		case p := <-n.join:
 			if !n.Members.contains(p) && !n.Self.isMe(p) {
 				n.Members = append(n.Members, p)
 
-				n.handler(event{"join", p.toMap()})
-				n.log("🔵 Connected to [%s:%d](%s)", p.Address, p.Port,
-					p.Alias)
-
+				n.log("Connected to [%s:%s]", p.Address, p.Port)
 				go joinEmitter(n, p)
 			}
 
 		case p := <-n.leave:
 			if n.Members.contains(p) && !n.Self.isMe(p) {
 				n.Members = n.Members.delete(p)
-
-				n.handler(event{"leave", p.toMap()})
-				n.log("❌ Disconnected From [%s:%d](%s)", p.Address,
-					p.Port, p.Alias)
+				n.log("Disconnected From [%s:%s]", p.Address, p.Port)
 			}
 
 		case <-n.update:
@@ -155,10 +136,7 @@ func (n *Node) eventLoop() {
 		case <-n.exit:
 			go leaveEmitter(n)
 
-			n.handler(event{"disconnect", n.Self.toMap()})
-			n.log("❌ Disconnecting...")
-
-			n.server.Shutdown(nil)
+			n.log("Disconnecting...")
 			n.waiter.Done()
 		}
 	}
@@ -173,16 +151,17 @@ func (n *Node) eventListeners() {
 		broadcastPath: inboxListener(n),
 	}
 
-	n.log("⌛️ Start listeners...")
-	n.log("👂 Listen at %s:%d", n.Self.Address, n.Self.Port)
-	ls.startListen(n)
+	n.network = newNetwork(n, ls)
+	n.log("Start listeners...")
+	n.log("Listen at %s:%s", n.Self.Address, n.Self.Port)
+	n.network.start()
 }
 
 // handler function checks if node have a defined callback and execute it
 // passing event information has map.
-func (n *Node) handler(e event) {
+func (n *Node) handler(m Message) {
 	if n.callback != nil {
-		n.callback(e.toMap())
+		n.callback(m.Content)
 	}
 }
 
@@ -191,6 +170,6 @@ func (n *Node) handler(e event) {
 func (n *Node) log(m string, args ...interface{}) {
 	if n.debug {
 		m = fmt.Sprintf(m, args...)
-		log.Printf("[%s:%d](%s) - %s\n", n.Self.Address, n.Self.Port, n.Self.Alias, m)
+		log.Printf("[%s:%s] %s\n", n.Self.Address, n.Self.Port, m)
 	}
 }
