@@ -1,6 +1,9 @@
 package gop2p
 
-import "net"
+import (
+	"net"
+	"strconv"
+)
 
 // Message struct contains message information: emitter Peer and Content.
 type Message struct {

@@ -4,7 +4,6 @@ package gop2p
 import (
 	"fmt"
 	"log"
-	"net/http"
 	"sync"
 )
 
@@ -18,7 +17,7 @@ type Node struct {
 	Self    Peer
 	Members peers
 
-	network *Network
+	network *network
 
 	inbox  chan Message
 	outbox chan Message
@@ -75,6 +74,8 @@ func (n *Node) Join(p Peer) {
 	n.join <- p
 }
 
+func (n *Node)
+
 // Leave function communicate to whole services (goroutines) that they must end.
 func (n *Node) Leave() {
 	n.exit <- true
@@ -109,9 +110,9 @@ func (n *Node) eventLoop() {
 					m.From.Address, m.From.Port, m.Content)
 			}
 
-		case m := <-n.outbox:
+		case _ = <-n.outbox:
 			if len(n.Members) > 0 {
-				go outboxEmitter(n, m)
+				//go n.network.outboxEmitter(m)
 			} else {
 				n.log("Broadcasting aborted. Empty network!")
 			}
@@ -121,7 +122,7 @@ func (n *Node) eventLoop() {
 				n.Members = append(n.Members, p)
 
 				n.log("Connected to [%s:%s]", p.Address, p.Port)
-				go joinEmitter(n, p)
+				//go joinEmitter(n, p)
 			}
 
 		case p := <-n.leave:
@@ -134,7 +135,7 @@ func (n *Node) eventLoop() {
 			n.sync <- n.Members
 
 		case <-n.exit:
-			go leaveEmitter(n)
+			//go leaveEmitter(n)
 
 			n.log("Disconnecting...")
 			n.waiter.Done()
@@ -145,14 +146,7 @@ func (n *Node) eventLoop() {
 // eventListeners function defines listeners functions and each routes. Then
 // starts HTTP Server goroutine.
 func (n *Node) eventListeners() {
-	var ls listeners = listeners{
-		joinPath:      joinListener(n),
-		leavePath:     leaveListener(n),
-		broadcastPath: inboxListener(n),
-	}
-
-	n.network = newNetwork(n, ls)
-	n.log("Start listeners...")
+	n.network = newNetwork(n)
 	n.log("Listen at %s:%s", n.Self.Address, n.Self.Port)
 	n.network.start()
 }

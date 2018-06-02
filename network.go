@@ -1,10 +1,10 @@
 package gop2p
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"net/http"
+	"io/ioutil"
+	"regexp"
 )
 
 // baseUri contains node address template
@@ -30,25 +30,20 @@ const peerPort string = "PEER_PORT"
 // listener type involves http handler.
 type listener func(http.ResponseWriter, *http.Request)
 
-// listeners type involves map struct to store each listener with its route.
-type listeners map[string]listener
-
 type network struct {
 	address string
 	port string
 	node *Node
-	ls listeners
 	client *http.Client
 	server *http.Server
 }
 
-func newNetwork(n *Node, ls listeners) *network {
-	return &Network{ 
+func newNetwork(n *Node) *network {
+	return &network{
 		address: n.Self.Address,
-		port: n.Self.Port
-		node: n, 
-		ls: ls,
-		client: &http.Client{}
+		port: n.Self.Port,
+		node: n,
+		client: &http.Client{},
 	}
 }
 
@@ -56,14 +51,12 @@ func newNetwork(n *Node, ls listeners) *network {
 // its listener function.
 func (n *network) start() {
 	var s *http.ServeMux = http.NewServeMux()
-	for r, l := range n.ls {
-		s.HandleFunc(r, l)
-	}
+	s.HandleFunc(connectPath, n.connectListener())
 
 	var host string = fmt.Sprintf("%s:%s", n.address, n.port)
 	n.server = &http.Server{Addr: host, Handler: s}
 	go func() {
-		if e := http.ListenAndServe(n.host, s); e != nil {
+		if e := http.ListenAndServe(host, s); e != nil {
 			n.node.log("Error initializing server: %s", e.Error())
 			n.node.exit <- true
 		}
@@ -71,10 +64,7 @@ func (n *network) start() {
 }
 
 
-// joinEmitter function make a POST HTTP request to external Peer to connect
-// with their network. If request is successfully, response contains a list of
-// network nodes, function iterate over this nodes and communicate node join.
-func (n *Network) connectEmitter(p Peer) {
+func (n *network) connectEmitter(p Peer) {
 	var (
 		e error
 		req *http.Request
@@ -83,33 +73,57 @@ func (n *Network) connectEmitter(p Peer) {
 	)
 
 	if req, e = http.NewRequest(http.MethodGet, boot, nil); e != nil {
-		n.log("Error sending join: %s", e.Error())
-		n.exit <- true
+		n.node.log("Error sending join: %s", e.Error())
+		n.node.exit <- true
 	}
 
 	req.Header.Add(peerAddress, n.address)
 	req.Header.Add(peerPort, n.port)
 	
 	if res, e = n.client.Do(req); e != nil {
-		n.log("Error sending join: %s", e.Error())
-		n.exit <- true
+		n.node.log("Error sending join: %s", e.Error())
+		n.node.exit <- true
 	}
 
 	defer res.Body.Close()
 	var body []byte
 	if body, e = ioutil.ReadAll(res.Body); e != nil {
-		n.log("Error sending join: %s", e.Error())
-		n.exit <- true
+		n.node.log("Error sending join: %s", e.Error())
+		n.node.exit <- true
 	}
-	
-	var rgx *regexp.Regexp = regexp.MustCompile(`(.+):(.+)`)
-	var body =
-		for _, p := range ps {
-			n.join <- p
+
+	var rgx *regexp.Regexp = regexp.MustCompile("((.+):(.+))")
+	var hosts [][][]byte = rgx.FindAllSubmatch(body, -1)
+	for _, host := range hosts {
+		var address, port string = string(host[2]), string(host[3])
+		var p Peer = Peer{ port, address }
+		n.node.join <- p
+	}
+}
+
+func (n *network) connectListener() listener {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			var address, port string = r.Header.Get(peerAddress), r.Header.Get(peerPort)
+			var p Peer = Peer{ port, address }
+			n.node.join <- p
+
+			var members []byte
+			for _, m := range n.node.Members {
+				var member string = fmt.Sprintf("%s:%s\n", m.Address, m.Port)
+				members = append(members, []byte(member)...)
+			}
+
+			w.Header().Set("Content-Type", contentType)
+			w.Write(members)
+		} else {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			w.Write([]byte("405 - Method not allowed!"))
 		}
 	}
 }
 
+/*
 // leaveEmitter function send to all node members list a message that contains
 // Peer information to their leavePath of each node. Then, communicates to the
 // eventLoop that Peer leave has been broadcasting.
@@ -137,7 +151,7 @@ func outboxEmitter(n *Node, m Message) {
 	var c *http.Client = &http.Client{}
 	for _, p := range n.Members {
 		var h string = fmt.Sprintf(baseUri, p.Address, p.Port, broadcastPath)
-		
+
 		var e error
 		var req *http.Request
 		req, e := http.NewRequest(http.MethodPost, h, bytes.NewBuffer(m.Content)
@@ -205,7 +219,7 @@ func inboxListener(n *Node) listener {
 				Address: //HERE
 			}
 			var msg Message = Message{}
-			
+
 			d := json.NewDecoder(r.Body)
 			if e := d.Decode(&msg); e != nil {
 				n.log("‼️ Error decoding incoming message: %s", e.Error())
@@ -216,3 +230,4 @@ func inboxListener(n *Node) listener {
 		}
 	}
 }
+*/
