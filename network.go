@@ -1,21 +1,20 @@
 package gop2p
 
 import (
+	"bytes"
 	"fmt"
-	"net/http"
 	"io/ioutil"
+	"net/http"
 	"regexp"
 )
 
 // baseUri contains node address template
 const baseUri string = "http://%s:%s%s"
 
+// connectPath contains node route where listen for node join.
 const connectPath string = "/connect"
 
-// joinPath contains node route where listen for node join.
-const joinPath string = "/join"
-
-// leavePath contains node route where listen for node leave.
+// disconnectPath contains node route where listen for node leave.
 const disconnectPath string = "/disconnect"
 
 // broadcastPath contains node route where listen for messages.
@@ -24,7 +23,10 @@ const broadcastPath string = "/broadcast"
 // contentType contains HTTP Header Content-Type default option.
 const contentType string = "text/plain"
 
+// peerAddress contains default enviroment variable that contains address.
 const peerAddress string = "PEER_ADDRESS"
+
+// peerPort contains default enviroment variable that contains port.
 const peerPort string = "PEER_PORT"
 
 // listener type involves http handler.
@@ -32,18 +34,18 @@ type listener func(http.ResponseWriter, *http.Request)
 
 type network struct {
 	address string
-	port string
-	node *Node
-	client *http.Client
-	server *http.Server
+	port    string
+	node    *Node
+	client  *http.Client
+	server  *http.Server
 }
 
 func newNetwork(n *Node) *network {
 	return &network{
 		address: n.Self.Address,
-		port: n.Self.Port,
-		node: n,
-		client: &http.Client{},
+		port:    n.Self.Port,
+		node:    n,
+		client:  &http.Client{},
 	}
 }
 
@@ -52,61 +54,90 @@ func newNetwork(n *Node) *network {
 func (n *network) start() {
 	var s *http.ServeMux = http.NewServeMux()
 	s.HandleFunc(connectPath, n.connectListener())
+	s.HandleFunc(disconnectPath, n.disconnectListener())
+	s.HandleFunc(broadcastPath, n.messageListener())
 
 	var host string = fmt.Sprintf("%s:%s", n.address, n.port)
 	n.server = &http.Server{Addr: host, Handler: s}
 	go func() {
 		if e := http.ListenAndServe(host, s); e != nil {
 			n.node.log("Error initializing server: %s", e.Error())
-			n.node.exit <- true
+			n.node.disconnect <- true
 		}
 	}()
 }
 
-
+// connectEmitter function send connection request to bootnode, waits for node
+// response with member list as body, and send the same request to each member.
 func (n *network) connectEmitter(p Peer) {
 	var (
-		e error
-		req *http.Request
-		res *http.Response
-		boot string = fmt.Sprintf(baseUri, p.Address, p.Port, joinPath)
+		e    error
+		req  *http.Request
+		res  *http.Response
+		boot string = fmt.Sprintf(baseUri, p.Address, p.Port, connectPath)
 	)
-
 	if req, e = http.NewRequest(http.MethodGet, boot, nil); e != nil {
-		n.node.log("Error sending join: %s", e.Error())
-		n.node.exit <- true
+		n.node.log("Error sending connect: %s", e.Error())
+		n.node.disconnect <- true
 	}
 
 	req.Header.Add(peerAddress, n.address)
 	req.Header.Add(peerPort, n.port)
-	
 	if res, e = n.client.Do(req); e != nil {
-		n.node.log("Error sending join: %s", e.Error())
-		n.node.exit <- true
+		n.node.log("Error sending connect: %s", e.Error())
+		n.node.disconnect <- true
 	}
 
 	defer res.Body.Close()
 	var body []byte
 	if body, e = ioutil.ReadAll(res.Body); e != nil {
-		n.node.log("Error sending join: %s", e.Error())
-		n.node.exit <- true
+		n.node.log("Error sending connect: %s", e.Error())
+		n.node.disconnect <- true
 	}
 
 	var rgx *regexp.Regexp = regexp.MustCompile("((.+):(.+))")
 	var hosts [][][]byte = rgx.FindAllSubmatch(body, -1)
 	for _, host := range hosts {
-		var address, port string = string(host[2]), string(host[3])
-		var p Peer = Peer{ port, address }
-		n.node.join <- p
+		var a, p string = string(host[2]), string(host[3])
+		n.node.join <- Peer{p, a}
+
+		var (
+			req *http.Request
+			res *http.Response
+			uri string = fmt.Sprintf(baseUri, a, p, connectPath)
+		)
+		if req, e = http.NewRequest(http.MethodGet, uri, nil); e != nil {
+			n.node.log("Error sending connect: %s", e.Error())
+		}
+
+		req.Header.Add(peerAddress, n.address)
+		req.Header.Add(peerPort, n.port)
+		if res, e = n.client.Do(req); e != nil {
+			n.node.log("Error sending connect: %s", e.Error())
+		}
+		defer res.Body.Close()
+
+		var body []byte
+		if body, e = ioutil.ReadAll(res.Body); e != nil {
+			n.node.log("Error sending connect: %s", e.Error())
+			n.node.disconnect <- true
+		}
+
+		for _, h := range rgx.FindAllSubmatch(body, -1) {
+			var a, p string = string(h[2]), string(h[3])
+			n.node.join <- Peer{p, a}
+		}
 	}
+	n.node.join <- p
 }
 
+// connectListener function return new connection http handler to listen for
+// new nodes connection. Create new member with headers info.
 func (n *network) connectListener() listener {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
-			var address, port string = r.Header.Get(peerAddress), r.Header.Get(peerPort)
-			var p Peer = Peer{ port, address }
-			n.node.join <- p
+			var a, p string = r.Header.Get(peerAddress), r.Header.Get(peerPort)
+			n.node.join <- Peer{p, a}
 
 			var members []byte
 			for _, m := range n.node.Members {
@@ -123,111 +154,77 @@ func (n *network) connectListener() listener {
 	}
 }
 
-/*
-// leaveEmitter function send to all node members list a message that contains
-// Peer information to their leavePath of each node. Then, communicates to the
-// eventLoop that Peer leave has been broadcasting.
-func leaveEmitter(n *Node) {
-	// MUST SHUTDOWN SERVER STUPID!
-	if j, e := json.Marshal(n.Self); e == nil {
-		for _, p := range n.Members {
-			var u string = fmt.Sprintf(baseUri, p.Address, p.Port, leavePath)
+// disconnectEmitter function emit disconnect request to all current members,
+// making http call to disconnectPath.
+func (n *network) disconnectEmitter() {
+	var e error
+	for _, m := range n.node.Members {
+		var (
+			req *http.Request
+			uri string = fmt.Sprintf(baseUri, m.Address, m.Port, disconnectPath)
+		)
 
-			var r *http.Response
-			var b *bytes.Buffer = bytes.NewBuffer(j)
-			if r, e = http.Post(u, contentType, b); e != nil {
-				n.log("Error sending join: %s", e.Error())
-				n.leave <- p
-			}
+		if req, e = http.NewRequest(http.MethodDelete, uri, nil); e != nil {
+			n.node.log("Error sending disconnect: %s", e.Error())
+		}
 
-			r.Body.Close()
+		req.Header.Add(peerAddress, n.address)
+		req.Header.Add(peerPort, n.port)
+
+		if _, e = n.client.Do(req); e != nil {
+			n.node.log("Error sending disconnect: %s", e.Error())
 		}
 	}
 }
 
-// outboxEmitter function send message struct to all node members list to node
-// broadcast path.
-func outboxEmitter(n *Node, m Message) {
-	var c *http.Client = &http.Client{}
-	for _, p := range n.Members {
-		var h string = fmt.Sprintf(baseUri, p.Address, p.Port, broadcastPath)
-
-		var e error
-		var req *http.Request
-		req, e := http.NewRequest(http.MethodPost, h, bytes.NewBuffer(m.Content)
-		if e != nil {
-			n.log("Error connecting: %s", e.Error())
-			n.leave <- p
-		}
-
-		var port string = fmt.Sprintf("%d", n.Selft.Port)
-		req.Header.Add("PEERPORT", port)
-		if e = client.Do(req); e != nil {
-			n.log("Error connecting: %s", e.Error())
-			n.leave <- p
+// disconnectListener function return the disconnect request handler, that send
+// emitter peer via leave channel.
+func (n *network) disconnectListener() listener {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodDelete {
+			var a, p string = r.Header.Get(peerAddress), r.Header.Get(peerPort)
+			n.node.leave <- Peer{p, a}
 		}
 	}
-
 }
 
-// joinListener function listens for new nodes in the network and communicate it
-// to the eventLoop.
-func joinListener(n *Node) listener {
+// messageEmitter function sends byte array as message to all current members,
+// making http call to broadcastPath.
+func (n *network) messageEmitter(message []byte) {
+	var e error
+	for _, m := range n.node.Members {
+		var (
+			req *http.Request
+			uri string = fmt.Sprintf(baseUri, m.Address, m.Port, broadcastPath)
+		)
+
+		var body *bytes.Buffer = bytes.NewBuffer(message)
+		if req, e = http.NewRequest(http.MethodPost, uri, body); e != nil {
+			n.node.log("Error sending message: %s", e.Error())
+		}
+
+		req.Header.Add(peerAddress, n.address)
+		req.Header.Add(peerPort, n.port)
+
+		if _, e = n.client.Do(req); e != nil {
+			n.node.log("Error sending message: %s", e.Error())
+		}
+	}
+}
+
+// messageListener function returns message handler function, that listens to
+// new messages broadcast and send it to inbox channel.
+func (n *network) messageListener() listener {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
-			var p Peer = Peer{}
+			defer r.Body.Close()
 
-			d := json.NewDecoder(r.Body)
-			if e := d.Decode(&p); e != nil {
-				n.log("Error decoding Peer joins: %s", e.Error())
-				return
+			if body, e := ioutil.ReadAll(r.Body); e != nil {
+				n.node.log("Error receiving message: %s", e.Error())
+				n.node.disconnect <- true
+			} else {
+				n.node.inbox <- body
 			}
-
-			n.join <- p
-			n.update <- true
-			e := json.NewEncoder(w)
-			e.Encode(<-n.sync)
 		}
 	}
 }
-
-// leaveListener function listens for Peer network leaves and communicate it to
-// the eventLoop.
-func leaveListener(n *Node) listener {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost {
-			var p Peer = Peer{}
-
-			d := json.NewDecoder(r.Body)
-			if e := d.Decode(&p); e != nil {
-				n.log("‼️ Error decoding Peer leaves: %s", e.Error())
-				return
-			}
-
-			n.leave <- p
-		}
-	}
-}
-
-// inbocListener function listens for new message broadcasted and communicate it
-// to the eventLoop.
-func inboxListener(n *Node) listener {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost {
-			var peer Peer = Peer{
-				Port: port,
-				Address: //HERE
-			}
-			var msg Message = Message{}
-
-			d := json.NewDecoder(r.Body)
-			if e := d.Decode(&msg); e != nil {
-				n.log("‼️ Error decoding incoming message: %s", e.Error())
-				return
-			}
-
-			n.inbox <- msg
-		}
-	}
-}
-*/

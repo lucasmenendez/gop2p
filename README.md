@@ -21,41 +21,37 @@ import (
 )
 
 func main() {
-    main := gop2p.InitNode("main", 5001, true)
+	main := gop2p.InitNode(5001, true)
     defer main.Wait()
-    
+   
+	main.OnMessage(func(message []byte) {
+		fmt.Printf("\t\t-> %s\n", string(message))
+	})
+
     go func() {
-        _main := main.Self
-        //_main := gop2p.Me("main", 5001)
+        entry := main.Self
+        //_entry := gop2p.CreatePeer("localhost", 5001)
         
         time.Sleep(time.Second)
-        node := gop2p.InitNode("peer", 5002, true)
-        node.Join(_main)
-        defer node.Wait()
-        
+        node := gop2p.InitNode(5002, true)
+        node.Connect(entry)
         time.Sleep(2 * time.Second)
-        node.Broadcast("Hello network!")
-        
+		node.Broadcast([]byte("Hola"))
         time.Sleep(2 * time.Second)
-        node.Broadcast("Hello again network!")
-        time.Sleep(2 * time.Second)
-        node.Leave()
-        time.Sleep(time.Second)
-        
-        return
+        node.Disconnect()
     }()
-    
-    time.Sleep(20 * time.Second)
-    main.Broadcast("Are you there?")
-    time.Sleep(time.Second)
-    main.Broadcast("Hi?")
-    time.Sleep(time.Second)
-    main.Leave()
+    go func() {
+        entry := main.Self
+        //_entry := gop2p.CreatePeer("localhost", 5001)
+        
+        time.Sleep(1 * time.Second)
+        node := gop2p.InitNode(5003, true)
+        node.Connect(entry)
+        time.Sleep(2 * time.Second)
+        node.Disconnect()
+    }()
+
+	time.Sleep(6 * time.Second)
+	main.Disconnect()
 }
 ```
-
-## TODO
-
-- [ ] Design tests
-- [ ] Integrate Travis-ci.org
-- [ ] [serf.io](https://www.serf.io/)

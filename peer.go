@@ -5,15 +5,9 @@ import (
 	"strconv"
 )
 
-// Message struct contains message information: emitter Peer and Content.
-type Message struct {
-	From    Peer
-	Content []byte
-}
-
 // Peer struct contains Peer alias, ip address and port to communicate with.
 type Peer struct {
-	Port    string 
+	Port    string
 	Address string
 }
 
