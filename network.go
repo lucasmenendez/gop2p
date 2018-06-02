@@ -23,11 +23,11 @@ const broadcastPath string = "/broadcast"
 // contentType contains HTTP Header Content-Type default option.
 const contentType string = "text/plain"
 
-// peerAddress contains default enviroment variable that contains address.
-const peerAddress string = "PEER_ADDRESS"
+// peeraddress contains default enviroment variable that contains address.
+const peeraddress string = "PEER_ADDRESS"
 
-// peerPort contains default enviroment variable that contains port.
-const peerPort string = "PEER_PORT"
+// peerport contains default enviroment variable that contains port.
+const peerport string = "PEER_PORT"
 
 // listener type involves http handler.
 type listener func(http.ResponseWriter, *http.Request)
@@ -42,8 +42,8 @@ type network struct {
 
 func newNetwork(n *Node) *network {
 	return &network{
-		address: n.Self.Address,
-		port:    n.Self.Port,
+		address: n.Self.address,
+		port:    n.Self.port,
 		node:    n,
 		client:  &http.Client{},
 	}
@@ -69,20 +69,20 @@ func (n *network) start() {
 
 // connectEmitter function send connection request to bootnode, waits for node
 // response with member list as body, and send the same request to each member.
-func (n *network) connectEmitter(p Peer) {
+func (n *network) connectEmitter(p peer) {
 	var (
 		e    error
 		req  *http.Request
 		res  *http.Response
-		boot string = fmt.Sprintf(baseUri, p.Address, p.Port, connectPath)
+		boot string = fmt.Sprintf(baseUri, p.address, p.port, connectPath)
 	)
 	if req, e = http.NewRequest(http.MethodGet, boot, nil); e != nil {
 		n.node.log("Error sending connect: %s", e.Error())
 		n.node.disconnect <- true
 	}
 
-	req.Header.Add(peerAddress, n.address)
-	req.Header.Add(peerPort, n.port)
+	req.Header.Add(peeraddress, n.address)
+	req.Header.Add(peerport, n.port)
 	if res, e = n.client.Do(req); e != nil {
 		n.node.log("Error sending connect: %s", e.Error())
 		n.node.disconnect <- true
@@ -99,7 +99,7 @@ func (n *network) connectEmitter(p Peer) {
 	var hosts [][][]byte = rgx.FindAllSubmatch(body, -1)
 	for _, host := range hosts {
 		var a, p string = string(host[2]), string(host[3])
-		n.node.join <- Peer{p, a}
+		n.node.join <- peer{p, a}
 
 		var (
 			req *http.Request
@@ -110,8 +110,8 @@ func (n *network) connectEmitter(p Peer) {
 			n.node.log("Error sending connect: %s", e.Error())
 		}
 
-		req.Header.Add(peerAddress, n.address)
-		req.Header.Add(peerPort, n.port)
+		req.Header.Add(peeraddress, n.address)
+		req.Header.Add(peerport, n.port)
 		if res, e = n.client.Do(req); e != nil {
 			n.node.log("Error sending connect: %s", e.Error())
 		}
@@ -125,7 +125,7 @@ func (n *network) connectEmitter(p Peer) {
 
 		for _, h := range rgx.FindAllSubmatch(body, -1) {
 			var a, p string = string(h[2]), string(h[3])
-			n.node.join <- Peer{p, a}
+			n.node.join <- peer{p, a}
 		}
 	}
 	n.node.join <- p
@@ -136,12 +136,12 @@ func (n *network) connectEmitter(p Peer) {
 func (n *network) connectListener() listener {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
-			var a, p string = r.Header.Get(peerAddress), r.Header.Get(peerPort)
-			n.node.join <- Peer{p, a}
+			var a, p string = r.Header.Get(peeraddress), r.Header.Get(peerport)
+			n.node.join <- peer{p, a}
 
 			var members []byte
 			for _, m := range n.node.Members {
-				var member string = fmt.Sprintf("%s:%s\n", m.Address, m.Port)
+				var member string = fmt.Sprintf("%s:%s\n", m.address, m.port)
 				members = append(members, []byte(member)...)
 			}
 
@@ -161,15 +161,15 @@ func (n *network) disconnectEmitter() {
 	for _, m := range n.node.Members {
 		var (
 			req *http.Request
-			uri string = fmt.Sprintf(baseUri, m.Address, m.Port, disconnectPath)
+			uri string = fmt.Sprintf(baseUri, m.address, m.port, disconnectPath)
 		)
 
 		if req, e = http.NewRequest(http.MethodDelete, uri, nil); e != nil {
 			n.node.log("Error sending disconnect: %s", e.Error())
 		}
 
-		req.Header.Add(peerAddress, n.address)
-		req.Header.Add(peerPort, n.port)
+		req.Header.Add(peeraddress, n.address)
+		req.Header.Add(peerport, n.port)
 
 		if _, e = n.client.Do(req); e != nil {
 			n.node.log("Error sending disconnect: %s", e.Error())
@@ -182,8 +182,8 @@ func (n *network) disconnectEmitter() {
 func (n *network) disconnectListener() listener {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodDelete {
-			var a, p string = r.Header.Get(peerAddress), r.Header.Get(peerPort)
-			n.node.leave <- Peer{p, a}
+			var a, p string = r.Header.Get(peeraddress), r.Header.Get(peerport)
+			n.node.leave <- peer{p, a}
 		}
 	}
 }
@@ -195,7 +195,7 @@ func (n *network) messageEmitter(message []byte) {
 	for _, m := range n.node.Members {
 		var (
 			req *http.Request
-			uri string = fmt.Sprintf(baseUri, m.Address, m.Port, broadcastPath)
+			uri string = fmt.Sprintf(baseUri, m.address, m.port, broadcastPath)
 		)
 
 		var body *bytes.Buffer = bytes.NewBuffer(message)
@@ -203,8 +203,8 @@ func (n *network) messageEmitter(message []byte) {
 			n.node.log("Error sending message: %s", e.Error())
 		}
 
-		req.Header.Add(peerAddress, n.address)
-		req.Header.Add(peerPort, n.port)
+		req.Header.Add(peeraddress, n.address)
+		req.Header.Add(peerport, n.port)
 
 		if _, e = n.client.Do(req); e != nil {
 			n.node.log("Error sending message: %s", e.Error())

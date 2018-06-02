@@ -5,24 +5,24 @@ import (
 	"strconv"
 )
 
-// Peer struct contains Peer alias, ip address and port to communicate with.
-type Peer struct {
-	Port    string
-	Address string
+// peer struct contains peer alias, ip address and port to communicate with.
+type peer struct {
+	port    string
+	address string
 }
 
-// CreatePeer function returns defined Peer based on Peer alias, ip address and
+// Createpeer function returns defined peer based on peer alias, ip address and
 // port provided.
-func CreatePeer(a string, p int) (i Peer) {
-	i.Address = a
-	i.Port = strconv.Itoa(p)
+func Createpeer(a string, p int) (i peer) {
+	i.address = a
+	i.port = strconv.Itoa(p)
 	return
 }
 
-// Me function involves CreatePeer function getting current host ip address
+// Me function involves Createpeer function getting current host ip address
 // previously.
-func Me(p int) (me Peer) {
-	me = CreatePeer("localhost", p)
+func Me(p int) (me peer) {
+	me = Createpeer("localhost", p)
 
 	var e error
 	var addrs []net.Addr
@@ -41,25 +41,25 @@ func Me(p int) (me Peer) {
 	}
 
 	if a != "" {
-		me.Address = a
+		me.address = a
 	}
 
 	return
 }
 
-// isMe function compare current Peer with other to check if both peers are
+// isMe function compare current peer with other to check if both peers are
 // equal.
-func (p Peer) isMe(c Peer) bool {
-	return p.Address == c.Address && p.Port == c.Port
+func (p peer) isMe(c peer) bool {
+	return p.address == c.address && p.port == c.port
 }
 
-// peers involves list of Peer
-type peers []Peer
+// peers involves list of peer
+type peers []peer
 
-// contains function return if current list of Peer contains other provided.
-func (ps peers) contains(p Peer) bool {
+// contains function return if current list of peer contains other provided.
+func (ps peers) contains(p peer) bool {
 	for _, pn := range ps {
-		if pn.Address == p.Address && pn.Port == p.Port {
+		if pn.address == p.address && pn.port == p.port {
 			return true
 		}
 	}
@@ -67,11 +67,11 @@ func (ps peers) contains(p Peer) bool {
 	return false
 }
 
-// delete function returns a copy of current list of Peer removing Peer provided
+// delete function returns a copy of current list of peer removing peer provided
 // previously.
-func (ps peers) delete(p Peer) (r peers) {
+func (ps peers) delete(p peer) (r peers) {
 	for _, pn := range ps {
-		if pn.Address != p.Address || (pn.Address == p.Address && pn.Port != p.Port) {
+		if pn.address != p.address || (pn.address == p.address && pn.port != p.port) {
 			r = append(r, pn)
 		}
 	}
