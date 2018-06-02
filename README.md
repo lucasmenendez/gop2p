@@ -25,28 +25,28 @@ func main() {
 		fmt.Printf("\t\t-> %s\n", string(message))
 	})
 
-    go func() {
-        entry := main.Self
-        //_entry := gop2p.CreatePeer("localhost", 5001)
-        
-        time.Sleep(time.Second)
-        node := gop2p.InitNode(5002, true)
-        node.Connect(entry)
-        time.Sleep(2 * time.Second)
+	go func() {
+		entry := main.Self
+		//_entry := gop2p.CreatePeer("localhost", 5001)
+
+		time.Sleep(time.Second)
+		node := gop2p.InitNode(5002, true)
+		node.Connect(entry)
+		time.Sleep(2 * time.Second)
 		node.Broadcast([]byte("Hola"))
-        time.Sleep(2 * time.Second)
-        node.Disconnect()
-    }()
-    go func() {
-        entry := main.Self
-        //_entry := gop2p.CreatePeer("localhost", 5001)
-        
-        time.Sleep(1 * time.Second)
-        node := gop2p.InitNode(5003, true)
-        node.Connect(entry)
-        time.Sleep(2 * time.Second)
-        node.Disconnect()
-    }()
+		time.Sleep(2 * time.Second)
+		node.Disconnect()
+	}()
+	go func() {
+		entry := main.Self
+		//_entry := gop2p.CreatePeer("localhost", 5001)
+
+		time.Sleep(1 * time.Second)
+		node := gop2p.InitNode(5003, true)
+		node.Connect(entry)
+		time.Sleep(2 * time.Second)
+		node.Disconnect()
+	}()
 
 	time.Sleep(6 * time.Second)
 	main.Disconnect()
