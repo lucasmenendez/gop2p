@@ -26,9 +26,6 @@ type Node struct {
 	disconnect chan bool
 	leave      chan Peer
 
-	sync   chan peers
-	update chan bool
-
 	waiter *sync.WaitGroup
 
 	callback Handler
@@ -48,8 +45,6 @@ func InitNode(p int, d bool) (n *Node) {
 		join:       make(chan Peer),
 		disconnect: make(chan bool),
 		leave:      make(chan Peer),
-		sync:       make(chan peers),
-		update:     make(chan bool),
 		waiter:     &sync.WaitGroup{},
 		debug:      d,
 	}
@@ -136,9 +131,6 @@ func (n *Node) eventLoop() {
 				n.Members = n.Members.delete(p)
 				n.log("Disconnected From [%s:%s]", p.Address, p.Port)
 			}
-
-		case <-n.update:
-			n.sync <- n.Members
 		}
 	}
 }
