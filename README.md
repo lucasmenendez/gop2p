@@ -19,8 +19,8 @@ import (
 
 func main() {
 	main := gop2p.InitNode(5001, true)
-    defer main.Wait()
-   
+	defer main.Wait()
+
 	main.OnMessage(func(message []byte) {
 		fmt.Printf("\t\t-> %s\n", string(message))
 	})
