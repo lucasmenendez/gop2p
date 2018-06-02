@@ -8,9 +8,6 @@ Simple *Peer-to-Peer* protocol implementation in pure Go.
 go get github.com/lucasmenendez/gop2p
 ```
 
-## Demo
-![demo.gif](demo.gif)
-
 ## Example
 ```go
 package main
