@@ -53,7 +53,7 @@ func InitNode(p int, d bool) (n *Node) {
 	return
 }
 
-// SetCallback function receives a Handler function to call when node receives
+// OnMessage function receives a Handler function to call when node receives
 // a message. If node doesn't have associated Handler, incoming messages will be
 // logged with standard library.
 func (n *Node) OnMessage(c Handler) {
@@ -71,7 +71,8 @@ func (n *Node) Connect(p peer) {
 	n.connect <- p
 }
 
-// Leave function communicate to whole services (goroutines) that they must end.
+// Disconnect function communicate to whole services (goroutines) that they 
+// must end.
 func (n *Node) Disconnect() {
 	n.disconnect <- true
 }

@@ -23,10 +23,10 @@ const broadcastPath string = "/broadcast"
 // contentType contains HTTP Header Content-Type default option.
 const contentType string = "text/plain"
 
-// peeraddress contains default enviroment variable that contains address.
+// peeraddress contains default environment variable that contains address.
 const peeraddress string = "PEER_ADDRESS"
 
-// peerport contains default enviroment variable that contains port.
+// peerport contains default environment variable that contains port.
 const peerport string = "PEER_PORT"
 
 // listener type involves http handler.
