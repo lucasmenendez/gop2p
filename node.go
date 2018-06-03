@@ -71,7 +71,7 @@ func (n *Node) Connect(p peer) {
 	n.connect <- p
 }
 
-// Disconnect function communicate to whole services (goroutines) that they 
+// Disconnect function communicate to whole services (goroutines) that they
 // must end.
 func (n *Node) Disconnect() {
 	n.disconnect <- true
