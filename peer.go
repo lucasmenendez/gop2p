@@ -71,7 +71,7 @@ func (ps peers) contains(p peer) bool {
 // previously.
 func (ps peers) delete(p peer) (r peers) {
 	for _, pn := range ps {
-		if pn.address != p.address || (pn.address == p.address && pn.port != p.port) {
+		if pn.address != p.address || pn.port != p.port {
 			r = append(r, pn)
 		}
 	}
