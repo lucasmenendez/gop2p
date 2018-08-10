@@ -73,7 +73,7 @@ func Example() {
 	// 2018/08/10 23:28:26 [192.168.0.37:5002] Connected to [192.168.0.37:5001]
 	// 2018/08/10 23:28:27 [192.168.0.37:5002] Message sended: 'Hello peers!'
 	// 2018/08/10 23:28:27 [192.168.0.37:5003] Message received: 'Hello peers!'
-	// 				-> Hello peers!
+	// 				-> Message handler: Hello peers!
 	// 2018/08/10 23:28:27 [192.168.0.37:5001] Message received: 'Hello peers!'
 	// 2018/08/10 23:28:28 [192.168.0.37:5003] Disconnecting...
 	// 2018/08/10 23:28:28 [192.168.0.37:5001] Disconnected From [192.168.0.37:5003]
