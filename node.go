@@ -14,22 +14,23 @@ type Handler func(m []byte)
 // contains reference to HTTP server node instance and all channels to
 // goroutines communication and their sync structures.
 type Node struct {
-	Self    peer
+	Self    Peer
 	Members peers
 
 	network *network
 
 	inbox      chan []byte
 	outbox     chan []byte
-	connect    chan peer
-	join       chan peer
+	connect    chan Peer
+	join       chan Peer
 	disconnect chan bool
-	leave      chan peer
+	leave      chan Peer
 
 	waiter *sync.WaitGroup
 
-	callback Handler
-	debug    bool
+	callback  Handler
+	debug     bool
+	connected bool
 }
 
 // InitNode function initializes a peer with current host information and
@@ -41,12 +42,13 @@ func InitNode(p int, d bool) (n *Node) {
 		Members:    peers{},
 		inbox:      make(chan []byte),
 		outbox:     make(chan []byte),
-		connect:    make(chan peer),
-		join:       make(chan peer),
+		connect:    make(chan Peer),
+		join:       make(chan Peer),
 		disconnect: make(chan bool),
-		leave:      make(chan peer),
+		leave:      make(chan Peer),
 		waiter:     &sync.WaitGroup{},
 		debug:      d,
+		connected:  true,
 	}
 
 	n.startService()
@@ -67,7 +69,7 @@ func (n *Node) Wait() {
 
 // Connect function allows node to connect to a network via entry peer
 // reference, that contains its information.
-func (n *Node) Connect(p peer) {
+func (n *Node) Connect(p Peer) {
 	n.connect <- p
 }
 
@@ -123,9 +125,12 @@ func (n *Node) eventLoop() {
 			}
 
 		case <-n.disconnect:
-			n.log("Disconnecting...")
-			n.network.disconnectEmitter()
-			n.waiter.Done()
+			if n.connected {
+				n.connected = false
+				n.log("Disconnecting...")
+				n.network.disconnectEmitter()
+				n.waiter.Done()
+			}
 
 		case p := <-n.leave:
 			if n.Members.contains(p) && !n.Self.isMe(p) {

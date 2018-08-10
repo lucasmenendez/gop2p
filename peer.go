@@ -5,15 +5,15 @@ import (
 	"strconv"
 )
 
-// peer struct contains peer alias, ip address and port to communicate with.
-type peer struct {
+// Peer struct contains Peer alias, ip address and port to communicate with.
+type Peer struct {
 	port    string
 	address string
 }
 
-// Createpeer function returns defined peer based on peer alias, ip address and
+// CreatePeer function returns defined peer based on peer alias, ip address and
 // port provided.
-func Createpeer(a string, p int) (i peer) {
+func CreatePeer(a string, p int) (i Peer) {
 	i.address = a
 	i.port = strconv.Itoa(p)
 	return
@@ -21,8 +21,8 @@ func Createpeer(a string, p int) (i peer) {
 
 // Me function involves Createpeer function getting current host ip address
 // previously.
-func Me(p int) (me peer) {
-	me = Createpeer("localhost", p)
+func Me(p int) (me Peer) {
+	me = CreatePeer("localhost", p)
 
 	var e error
 	var addrs []net.Addr
@@ -49,15 +49,15 @@ func Me(p int) (me peer) {
 
 // isMe function compare current peer with other to check if both peers are
 // equal.
-func (p peer) isMe(c peer) bool {
+func (p Peer) isMe(c Peer) bool {
 	return p.address == c.address && p.port == c.port
 }
 
 // peers involves list of peer
-type peers []peer
+type peers []Peer
 
 // contains function return if current list of peer contains other provided.
-func (ps peers) contains(p peer) bool {
+func (ps peers) contains(p Peer) bool {
 	for _, pn := range ps {
 		if pn.address == p.address && pn.port == p.port {
 			return true
@@ -69,7 +69,7 @@ func (ps peers) contains(p peer) bool {
 
 // delete function returns a copy of current list of peer removing peer provided
 // previously.
-func (ps peers) delete(p peer) (r peers) {
+func (ps peers) delete(p Peer) (r peers) {
 	for _, pn := range ps {
 		if pn.address != p.address || pn.port != p.port {
 			r = append(r, pn)

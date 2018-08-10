@@ -59,17 +59,15 @@ func (n *network) start() {
 
 	var host string = fmt.Sprintf("%s:%s", n.address, n.port)
 	n.server = &http.Server{Addr: host, Handler: s}
-	go func() {
-		if e := http.ListenAndServe(host, s); e != nil {
-			n.node.log("Error initializing server: %s", e.Error())
-			n.node.disconnect <- true
-		}
-	}()
+	if e := http.ListenAndServe(host, s); e != nil {
+		n.node.log("Error initializing server: %s", e.Error())
+		n.node.disconnect <- true
+	}
 }
 
 // connectEmitter function send connection request to bootnode, waits for node
 // response with member list as body, and send the same request to each member.
-func (n *network) connectEmitter(p peer) {
+func (n *network) connectEmitter(p Peer) {
 	var (
 		e    error
 		req  *http.Request
@@ -79,6 +77,7 @@ func (n *network) connectEmitter(p peer) {
 	if req, e = http.NewRequest(http.MethodGet, boot, nil); e != nil {
 		n.node.log("Error sending connect: %s", e.Error())
 		n.node.disconnect <- true
+		return
 	}
 
 	req.Header.Add(peeraddress, n.address)
@@ -86,20 +85,22 @@ func (n *network) connectEmitter(p peer) {
 	if res, e = n.client.Do(req); e != nil {
 		n.node.log("Error sending connect: %s", e.Error())
 		n.node.disconnect <- true
+		return
 	}
-
 	defer res.Body.Close()
+
 	var body []byte
 	if body, e = ioutil.ReadAll(res.Body); e != nil {
 		n.node.log("Error sending connect: %s", e.Error())
 		n.node.disconnect <- true
+		return
 	}
 
 	var rgx *regexp.Regexp = regexp.MustCompile("((.+):(.+))")
 	var hosts [][][]byte = rgx.FindAllSubmatch(body, -1)
 	for _, host := range hosts {
 		var a, p string = string(host[2]), string(host[3])
-		n.node.join <- peer{p, a}
+		n.node.join <- Peer{p, a}
 
 		var (
 			req *http.Request
@@ -121,11 +122,12 @@ func (n *network) connectEmitter(p peer) {
 		if body, e = ioutil.ReadAll(res.Body); e != nil {
 			n.node.log("Error sending connect: %s", e.Error())
 			n.node.disconnect <- true
+			return
 		}
 
 		for _, h := range rgx.FindAllSubmatch(body, -1) {
 			var a, p string = string(h[2]), string(h[3])
-			n.node.join <- peer{p, a}
+			n.node.join <- Peer{p, a}
 		}
 	}
 	n.node.join <- p
@@ -137,7 +139,7 @@ func (n *network) connectListener() listener {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
 			var a, p string = r.Header.Get(peeraddress), r.Header.Get(peerport)
-			n.node.join <- peer{p, a}
+			n.node.join <- Peer{p, a}
 
 			var members []byte
 			for _, m := range n.node.Members {
@@ -183,7 +185,7 @@ func (n *network) disconnectListener() listener {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodDelete {
 			var a, p string = r.Header.Get(peeraddress), r.Header.Get(peerport)
-			n.node.leave <- peer{p, a}
+			n.node.leave <- Peer{p, a}
 		}
 	}
 }
