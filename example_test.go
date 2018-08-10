@@ -15,7 +15,7 @@ func Example() {
 
 	// Set a message handler.
 	main.OnMessage(func(message []byte) {
-		fmt.Printf("\t\t-> %s\n", string(message))
+		fmt.Printf("\t\t-> Message handler: %s\n", string(message))
 	})
 
 	// Creating peer on localhost 5002 port.
