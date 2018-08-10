@@ -8,56 +8,5 @@ Simple *Peer-to-Peer* protocol implementation in pure Go.
 go get github.com/lucasmenendez/gop2p
 ```
 
-## Example
-```go
-package main
-
-import (
-	"fmt"
-	"time"
-
-	"github.com/lucasmenendez/gop2p"
-)
-
-func main() {
-	main := gop2p.InitNode(5001, true)
-	defer main.Wait()
-
-	main.OnMessage(func(message []byte) {
-		fmt.Printf("\t\t-> %s\n", string(message))
-	})
-
-	go func() {
-		entry := main.Self
-		//_entry := gop2p.CreatePeer("localhost", 5001)
-
-		time.Sleep(time.Second)
-		node := gop2p.InitNode(5002, true)
-		defer node.Wait()
-
-		node.Connect(entry)
-		time.Sleep(1 * time.Second)
-		node.Broadcast([]byte("Hola"))
-		time.Sleep(2 * time.Second)
-		node.Disconnect()
-	}()
-	go func() {
-		entry := main.Self
-		//_entry := gop2p.CreatePeer("localhost", 5001)
-
-		time.Sleep(1 * time.Second)
-		node := gop2p.InitNode(5003, true)
-		defer node.Wait()
-
-		node.Connect(entry)
-		time.Sleep(2 * time.Second)
-		node.Disconnect()
-	}()
-
-	time.Sleep(6 * time.Second)
-	main.Broadcast([]byte("Hola"))
-	time.Sleep(2 * time.Second)
-	main.Disconnect()
-}
-
-```
+## Docs & example
+Checkout [GoDoc Documentation](https://godoc.org/github.com/lucasmenendez/gop2p).
