@@ -5,13 +5,13 @@ import (
 	"strconv"
 )
 
-// Peer struct contains Peer alias, ip address and port to communicate with.
+// Peer struct contains peer ip address and port to communicate with ir.
 type Peer struct {
 	port    string
 	address string
 }
 
-// CreatePeer function returns defined peer based on peer alias, ip address and
+// CreatePeer function returns manually created peer based on ip address and
 // port provided.
 func CreatePeer(a string, p int) (i Peer) {
 	i.address = a
