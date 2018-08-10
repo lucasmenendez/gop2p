@@ -13,8 +13,10 @@ go get github.com/lucasmenendez/gop2p
 package main
 
 import (
-    "github.com/lucasmenendez/gop2p"
-    "time"
+	"fmt"
+	"time"
+
+	"github.com/lucasmenendez/gop2p"
 )
 
 func main() {
@@ -31,8 +33,10 @@ func main() {
 
 		time.Sleep(time.Second)
 		node := gop2p.InitNode(5002, true)
+		defer node.Wait()
+
 		node.Connect(entry)
-		time.Sleep(2 * time.Second)
+		time.Sleep(1 * time.Second)
 		node.Broadcast([]byte("Hola"))
 		time.Sleep(2 * time.Second)
 		node.Disconnect()
@@ -43,12 +47,17 @@ func main() {
 
 		time.Sleep(1 * time.Second)
 		node := gop2p.InitNode(5003, true)
+		defer node.Wait()
+
 		node.Connect(entry)
 		time.Sleep(2 * time.Second)
 		node.Disconnect()
 	}()
 
 	time.Sleep(6 * time.Second)
+	main.Broadcast([]byte("Hola"))
+	time.Sleep(2 * time.Second)
 	main.Disconnect()
 }
+
 ```
