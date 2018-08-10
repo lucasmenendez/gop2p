@@ -8,32 +8,38 @@ import (
 )
 
 func Example() {
+	// Creating main node in debug mode.
 	main := gop2p.InitNode(5001, true)
+	// Wait for connections.
 	defer main.Wait()
 
+	// Set a message handler.
 	main.OnMessage(func(message []byte) {
 		fmt.Printf("\t\t-> %s\n", string(message))
 	})
 
+	// Creating peer on localhost 5002 port.
 	go func() {
+		// Get main peer and create node in debug mode. To create an entry peer manually, use CreatePeer function.
 		entry := main.Self
-		//_entry := gop2p.CreatePeer("localhost", 5001)
-
-		time.Sleep(time.Second)
 		node := gop2p.InitNode(5002, true)
 		defer node.Wait()
 
+		// Connect to main node peer.
 		node.Connect(entry)
-		time.Sleep(1 * time.Second)
+		// Wait and broadcast message.
+		time.Sleep(time.Second)
 		node.Broadcast([]byte("Hello peers!"))
+		// Wait and disconnect
 		time.Sleep(2 * time.Second)
 		node.Disconnect()
 	}()
-	go func() {
-		entry := main.Self
-		//_entry := gop2p.CreatePeer("localhost", 5001)
 
-		time.Sleep(1 * time.Second)
+	// Create peer on localhost 5003 port.
+	go func() {
+		time.Sleep(time.Second)
+		entry := main.Self
+
 		node := gop2p.InitNode(5003, true)
 		defer node.Wait()
 
@@ -42,8 +48,10 @@ func Example() {
 		node.Disconnect()
 	}()
 
+	// Wait and broadcast. Broadcast fail is expected.
 	time.Sleep(6 * time.Second)
 	main.Broadcast([]byte("Hello peers!"))
+	// Wait and disconnect.
 	time.Sleep(2 * time.Second)
 	main.Disconnect()
 
