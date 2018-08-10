@@ -20,6 +20,8 @@ func Example() {
 
 	// Creating peer on localhost 5002 port.
 	go func() {
+		// Wait for main node initialization.
+		time.Sleep(time.Second)
 		// Get main peer and create node in debug mode. To create an entry peer manually, use CreatePeer function.
 		entry := main.Self
 		node := gop2p.InitNode(5002, true)
