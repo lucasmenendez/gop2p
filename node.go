@@ -56,8 +56,8 @@ func InitNode(p int, d bool) (n *Node) {
 	return
 }
 
-// On function receives a EventTrigger and Handler function to call when node receives
-// a emit that event.
+// On function receives a event trigger and event handler function to call when
+// node receives a emit that event.
 func (n *Node) On(t string, f Handler) {
 	n.events.on(t, f)
 }
@@ -73,14 +73,14 @@ func (n *Node) Connect(p Peer) {
 	n.connect <- p
 }
 
-// Disconnect function communicate to whole services (goroutines) that they
+// Disconnect function communicates to whole services (goroutines) that they
 // must end.
 func (n *Node) Disconnect() {
 	n.disconnect <- true
 }
 
-// Broadcast function emmit message to the network passing received Content to
-// broadcasting service.
+// Broadcast function emmits a message to the network passing received Content
+// to broadcasting service.
 func (n *Node) Broadcast(m []byte) {
 	n.outbox <- m
 }

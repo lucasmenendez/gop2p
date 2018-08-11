@@ -8,7 +8,8 @@ import (
 )
 
 func Example() {
-	// Creating main node with debug mode equal to false. Then set individual handlers.
+	// Creating main node with debug mode equal to false. Then set individual
+	// handlers.
 	main := gop2p.InitNode(5001, false)
 	// Wait for connections.
 	defer main.Wait()
@@ -32,7 +33,8 @@ func Example() {
 	go func() {
 		// Wait for main node initialization.
 		time.Sleep(time.Second)
-		// Get main peer and create node in debug mode. To create an entry peer manually, use CreatePeer function.
+		// Get main peer and create node in debug mode. To create an entry peer
+		// manually, use CreatePeer function.
 		entry := main.Self
 		node := gop2p.InitNode(5002, true)
 		defer node.Wait()
