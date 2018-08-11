@@ -48,12 +48,13 @@ func Me(p int) (me Peer) {
 	return
 }
 
-// isMe function compare current peer with other to check if both peers are
+// isMe function compares current peer with other to check if both peers are
 // equal.
 func (p Peer) isMe(c Peer) bool {
 	return p.Address == c.Address && p.Port == c.Port
 }
 
+// toByte function returns serialized json with peer information.
 func (p Peer) toBytes() (d []byte) {
 	d, _ = json.Marshal(&p)
 	return
@@ -62,7 +63,7 @@ func (p Peer) toBytes() (d []byte) {
 // Peers involves list of peer
 type Peers []Peer
 
-// contains function return if current list of peer contains other provided.
+// contains function returns if current list of peer contains other provided.
 func (ps Peers) contains(p Peer) bool {
 	for _, pn := range ps {
 		if pn.Address == p.Address && pn.Port == p.Port {
