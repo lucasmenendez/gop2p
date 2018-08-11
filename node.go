@@ -8,14 +8,14 @@ import (
 )
 
 // Handler type involves function to new messages handling.
-type Handler func(m []byte)
+type Handler func(d []byte)
 
 // Node struct contains self peer reference and list of network members. Also
 // contains reference to HTTP server node instance and all channels to
 // goroutines communication and their sync structures.
 type Node struct {
 	Self    Peer
-	Members peers
+	Members Peers
 
 	network *network
 
@@ -27,8 +27,8 @@ type Node struct {
 	leave      chan Peer
 
 	waiter *sync.WaitGroup
+	events *eventBus
 
-	callback  Handler
 	debug     bool
 	connected bool
 }
@@ -39,7 +39,7 @@ type Node struct {
 func InitNode(p int, d bool) (n *Node) {
 	n = &Node{
 		Self:       Me(p),
-		Members:    peers{},
+		Members:    Peers{},
 		inbox:      make(chan []byte),
 		outbox:     make(chan []byte),
 		connect:    make(chan Peer),
@@ -47,6 +47,7 @@ func InitNode(p int, d bool) (n *Node) {
 		disconnect: make(chan bool),
 		leave:      make(chan Peer),
 		waiter:     &sync.WaitGroup{},
+		events:     newEventBus(),
 		debug:      d,
 		connected:  true,
 	}
@@ -55,11 +56,10 @@ func InitNode(p int, d bool) (n *Node) {
 	return
 }
 
-// OnMessage function receives a Handler function to call when node receives
-// a message. If node doesn't have associated Handler, incoming messages will be
-// logged with standard library.
-func (n *Node) OnMessage(c Handler) {
-	n.callback = c
+// On function receives a EventTrigger and Handler function to call when node receives
+// a emit that event.
+func (n *Node) On(t string, f Handler) {
+	n.events.on(t, f)
 }
 
 // Wait function keeps node alive.
@@ -100,11 +100,9 @@ func (n *Node) eventLoop() {
 
 	for {
 		select {
-		case m := <-n.inbox:
-			if n.callback != nil {
-				n.callback(m)
-			}
-			n.log("Message received: '%s'", m)
+		case d := <-n.inbox:
+			n.events.emit("message", d)
+			n.log("Message received: '%s'", d)
 
 		case m := <-n.outbox:
 			if len(n.Members) > 0 {
@@ -115,13 +113,14 @@ func (n *Node) eventLoop() {
 			}
 
 		case p := <-n.connect:
-			n.log("Connecting to [%s:%s]", p.address, p.port)
+			n.log("Connecting to [%s:%s]", p.Address, p.Port)
 			go n.network.connectEmitter(p)
 
 		case p := <-n.join:
 			if !n.Members.contains(p) && !n.Self.isMe(p) {
 				n.Members = append(n.Members, p)
-				n.log("Connected to [%s:%s]", p.address, p.port)
+				n.events.emit("connection", p.toBytes())
+				n.log("Connected to [%s:%s]", p.Address, p.Port)
 			}
 
 		case <-n.disconnect:
@@ -135,7 +134,8 @@ func (n *Node) eventLoop() {
 		case p := <-n.leave:
 			if n.Members.contains(p) && !n.Self.isMe(p) {
 				n.Members = n.Members.delete(p)
-				n.log("Disconnected From [%s:%s]", p.address, p.port)
+				n.events.emit("disconnection", p.toBytes())
+				n.log("Disconnected From [%s:%s]", p.Address, p.Port)
 			}
 		}
 	}
@@ -145,7 +145,7 @@ func (n *Node) eventLoop() {
 // starts HTTP Server goroutine.
 func (n *Node) eventListeners() {
 	n.network = newNetwork(n)
-	n.log("Listen at %s:%s", n.Self.address, n.Self.port)
+	n.log("Listen at %s:%s", n.Self.Address, n.Self.Port)
 	n.network.start()
 }
 
@@ -154,6 +154,6 @@ func (n *Node) eventListeners() {
 func (n *Node) log(m string, args ...interface{}) {
 	if n.debug {
 		m = fmt.Sprintf(m, args...)
-		log.Printf("[%s:%s] %s\n", n.Self.address, n.Self.port, m)
+		log.Printf("[%s:%s] %s\n", n.Self.Address, n.Self.Port, m)
 	}
 }

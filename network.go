@@ -8,8 +8,8 @@ import (
 	"regexp"
 )
 
-// baseUri contains node address template
-const baseUri string = "http://%s:%s%s"
+// baseURI contains node address template
+const baseURI string = "http://%s:%s%s"
 
 // connectPath contains node route where listen for node join.
 const connectPath string = "/connect"
@@ -42,8 +42,8 @@ type network struct {
 
 func newNetwork(n *Node) *network {
 	return &network{
-		address: n.Self.address,
-		port:    n.Self.port,
+		address: n.Self.Address,
+		port:    n.Self.Port,
 		node:    n,
 		client:  &http.Client{},
 	}
@@ -52,12 +52,12 @@ func newNetwork(n *Node) *network {
 // startListen function initializes HTTP Server node assigning to each route
 // its listener function.
 func (n *network) start() {
-	var s *http.ServeMux = http.NewServeMux()
+	var s = http.NewServeMux()
 	s.HandleFunc(connectPath, n.connectListener())
 	s.HandleFunc(disconnectPath, n.disconnectListener())
 	s.HandleFunc(broadcastPath, n.messageListener())
 
-	var host string = fmt.Sprintf("%s:%s", n.address, n.port)
+	var host = fmt.Sprintf("%s:%s", n.address, n.port)
 	n.server = &http.Server{Addr: host, Handler: s}
 	if e := http.ListenAndServe(host, s); e != nil {
 		n.node.log("Error initializing server: %s", e.Error())
@@ -72,7 +72,7 @@ func (n *network) connectEmitter(p Peer) {
 		e    error
 		req  *http.Request
 		res  *http.Response
-		boot string = fmt.Sprintf(baseUri, p.address, p.port, connectPath)
+		boot = fmt.Sprintf(baseURI, p.Address, p.Port, connectPath)
 	)
 	if req, e = http.NewRequest(http.MethodGet, boot, nil); e != nil {
 		n.node.log("Error sending connect: %s", e.Error())
@@ -96,8 +96,10 @@ func (n *network) connectEmitter(p Peer) {
 		return
 	}
 
-	var rgx *regexp.Regexp = regexp.MustCompile("((.+):(.+))")
-	var hosts [][][]byte = rgx.FindAllSubmatch(body, -1)
+	var (
+		rgx   = regexp.MustCompile("((.+):(.+))")
+		hosts = rgx.FindAllSubmatch(body, -1)
+	)
 	for _, host := range hosts {
 		var a, p string = string(host[2]), string(host[3])
 		n.node.join <- Peer{p, a}
@@ -105,7 +107,7 @@ func (n *network) connectEmitter(p Peer) {
 		var (
 			req *http.Request
 			res *http.Response
-			uri string = fmt.Sprintf(baseUri, a, p, connectPath)
+			uri = fmt.Sprintf(baseURI, a, p, connectPath)
 		)
 		if req, e = http.NewRequest(http.MethodGet, uri, nil); e != nil {
 			n.node.log("Error sending connect: %s", e.Error())
@@ -143,7 +145,7 @@ func (n *network) connectListener() listener {
 
 			var members []byte
 			for _, m := range n.node.Members {
-				var member string = fmt.Sprintf("%s:%s\n", m.address, m.port)
+				var member = fmt.Sprintf("%s:%s\n", m.Address, m.Port)
 				members = append(members, []byte(member)...)
 			}
 
@@ -163,7 +165,7 @@ func (n *network) disconnectEmitter() {
 	for _, m := range n.node.Members {
 		var (
 			req *http.Request
-			uri string = fmt.Sprintf(baseUri, m.address, m.port, disconnectPath)
+			uri = fmt.Sprintf(baseURI, m.Address, m.Port, disconnectPath)
 		)
 
 		if req, e = http.NewRequest(http.MethodDelete, uri, nil); e != nil {
@@ -197,10 +199,10 @@ func (n *network) messageEmitter(message []byte) {
 	for _, m := range n.node.Members {
 		var (
 			req *http.Request
-			uri string = fmt.Sprintf(baseUri, m.address, m.port, broadcastPath)
+			uri = fmt.Sprintf(baseURI, m.Address, m.Port, broadcastPath)
 		)
 
-		var body *bytes.Buffer = bytes.NewBuffer(message)
+		var body = bytes.NewBuffer(message)
 		if req, e = http.NewRequest(http.MethodPost, uri, body); e != nil {
 			n.node.log("Error sending message: %s", e.Error())
 		}

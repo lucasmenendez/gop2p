@@ -1,21 +1,22 @@
 package gop2p
 
 import (
+	"encoding/json"
 	"net"
 	"strconv"
 )
 
 // Peer struct contains peer ip address and port to communicate with ir.
 type Peer struct {
-	port    string
-	address string
+	Port    string `json:"port"`
+	Address string `json:"address"`
 }
 
 // CreatePeer function returns manually created peer based on ip address and
 // port provided.
 func CreatePeer(a string, p int) (i Peer) {
-	i.address = a
-	i.port = strconv.Itoa(p)
+	i.Address = a
+	i.Port = strconv.Itoa(p)
 	return
 }
 
@@ -41,7 +42,7 @@ func Me(p int) (me Peer) {
 	}
 
 	if a != "" {
-		me.address = a
+		me.Address = a
 	}
 
 	return
@@ -50,16 +51,21 @@ func Me(p int) (me Peer) {
 // isMe function compare current peer with other to check if both peers are
 // equal.
 func (p Peer) isMe(c Peer) bool {
-	return p.address == c.address && p.port == c.port
+	return p.Address == c.Address && p.Port == c.Port
 }
 
-// peers involves list of peer
-type peers []Peer
+func (p Peer) toBytes() (d []byte) {
+	d, _ = json.Marshal(&p)
+	return
+}
+
+// Peers involves list of peer
+type Peers []Peer
 
 // contains function return if current list of peer contains other provided.
-func (ps peers) contains(p Peer) bool {
+func (ps Peers) contains(p Peer) bool {
 	for _, pn := range ps {
-		if pn.address == p.address && pn.port == p.port {
+		if pn.Address == p.Address && pn.Port == p.Port {
 			return true
 		}
 	}
@@ -69,9 +75,9 @@ func (ps peers) contains(p Peer) bool {
 
 // delete function returns a copy of current list of peer removing peer provided
 // previously.
-func (ps peers) delete(p Peer) (r peers) {
+func (ps Peers) delete(p Peer) (r Peers) {
 	for _, pn := range ps {
-		if pn.address != p.address || pn.port != p.port {
+		if pn.Address != p.Address || pn.Port != p.Port {
 			r = append(r, pn)
 		}
 	}
