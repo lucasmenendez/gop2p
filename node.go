@@ -7,7 +7,7 @@ import (
 	"sync"
 )
 
-// Handler type involves function to new messages handling.
+// Handler type involves function to events handling.
 type Handler func(d []byte)
 
 // Node struct contains self peer reference and list of network members. Also
