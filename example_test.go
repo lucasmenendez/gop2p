@@ -15,8 +15,8 @@ func Example() {
 	defer main.Wait()
 
 	// Set a connection handler
-	main.On("connection", func(usr []byte) {
-		fmt.Printf("[main handler] -> Connected: %s\n", string(usr))
+	main.On("connection", func(_ []byte) {
+		fmt.Printf("[main handler] -> Connected\n")
 	})
 
 	// Set a message handler.
@@ -25,8 +25,8 @@ func Example() {
 	})
 
 	// Set a disconnection handler
-	main.On("disconnection", func(usr []byte) {
-		fmt.Printf("[main handler] -> Disconnected: %s\n", string(usr))
+	main.On("disconnection", func(_ []byte) {
+		fmt.Printf("[main handler] -> Disconnected\n")
 	})
 
 	// Creating peer on localhost 5002 port.
@@ -69,9 +69,9 @@ func Example() {
 	time.Sleep(2 * time.Second)
 	main.Disconnect()
 
-	// Output:[main handler] -> Connected: {"port":"5003","address":"192.168.0.37"}
-	//[main handler] -> Connected: {"port":"5002","address":"192.168.0.37"}
+	// Output:[main handler] -> Connected
+	//[main handler] -> Connected
 	//[main handler] -> Message: Hello peers!
-	//[main handler] -> Disconnected: {"port":"5003","address":"192.168.0.37"}
-	//[main handler] -> Disconnected: {"port":"5002","address":"192.168.0.37"}
+	//[main handler] -> Disconnected
+	//[main handler] -> Disconnected
 }
