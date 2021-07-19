@@ -64,7 +64,9 @@ func (n *Node) On(t string, f Handler) {
 
 // Wait function keeps node alive.
 func (n *Node) Wait() {
-	n.waiter.Wait()
+	for {
+		select {}
+	}
 }
 
 // Connect function allows node to connect to a network via entry peer
@@ -89,6 +91,7 @@ func (n *Node) Broadcast(m []byte) {
 // eventListener goroutines.
 func (n *Node) startService() {
 	n.waiter.Add(1)
+	defer n.waiter.Wait()
 	go n.eventLoop()
 	go n.eventListeners()
 }
