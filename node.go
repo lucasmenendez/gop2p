@@ -1,7 +1,9 @@
 // Package gop2p implements simple peer-to-peer network node in pure Go.
 package gop2p
 
-import "sync"
+import (
+	"sync"
+)
 
 // Node struct contains self peer reference and list of network members. Also
 // contains reference to HTTP server node instance and all channels to
@@ -140,9 +142,10 @@ func (n *Node) eventLoop() {
 
 		case <-n.disconnect:
 			if n.connected {
-				n.connected = false
 				n.log("Disconnecting...")
 				n.network.disconnectEmitter()
+				n.Members = Peers{}
+				n.connected = false
 				n.waiter.Done()
 			}
 
@@ -150,7 +153,7 @@ func (n *Node) eventLoop() {
 			if n.Members.contains(p) && !n.Self.isMe(p) {
 				n.Members = n.Members.delete(p)
 				n.events.emit("disconnection", p.toBytes())
-				n.log("Disconnected From [%s:%s]", p.Address, p.Port)
+				n.log("Disconnected from [%s:%s]", p.Address, p.Port)
 			}
 		}
 	}

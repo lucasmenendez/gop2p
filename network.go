@@ -111,12 +111,16 @@ func (n *network) connectEmitter(p Peer) {
 		)
 		if req, e = http.NewRequest(http.MethodGet, uri, nil); e != nil {
 			n.node.log("Error sending connect: %s", e.Error())
+			n.node.disconnect <- true
+			return
 		}
 
 		req.Header.Add(peeraddress, n.address)
 		req.Header.Add(peerport, n.port)
 		if res, e = n.client.Do(req); e != nil {
 			n.node.log("Error sending connect: %s", e.Error())
+			n.node.disconnect <- true
+			return
 		}
 		defer res.Body.Close()
 
