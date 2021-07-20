@@ -52,12 +52,12 @@ func newNetwork(n *Node) *network {
 // startListen function initializes HTTP Server node assigning to each route
 // its listener function.
 func (n *network) start() {
-	var s = http.NewServeMux()
+	var s *http.ServeMux = http.NewServeMux()
 	s.HandleFunc(connectPath, n.connectListener())
 	s.HandleFunc(disconnectPath, n.disconnectListener())
 	s.HandleFunc(broadcastPath, n.messageListener())
 
-	var host = fmt.Sprintf("%s:%s", n.address, n.port)
+	var host string = fmt.Sprintf("%s:%s", n.address, n.port)
 	n.server = &http.Server{Addr: host, Handler: s}
 	if e := http.ListenAndServe(host, s); e != nil {
 		n.node.log("Error initializing server: %s", e.Error())
@@ -97,8 +97,8 @@ func (n *network) connectEmitter(p Peer) {
 	}
 
 	var (
-		rgx   = regexp.MustCompile("((.+):(.+))")
-		hosts = rgx.FindAllSubmatch(body, -1)
+		rgx   *regexp.Regexp = regexp.MustCompile("((.+):(.+))")
+		hosts [][][]byte     = rgx.FindAllSubmatch(body, -1)
 	)
 	for _, host := range hosts {
 		var a, p string = string(host[2]), string(host[3])
@@ -145,7 +145,7 @@ func (n *network) connectListener() listener {
 
 			var members []byte
 			for _, m := range n.node.Members {
-				var member = fmt.Sprintf("%s:%s\n", m.Address, m.Port)
+				var member string = fmt.Sprintf("%s:%s\n", m.Address, m.Port)
 				members = append(members, []byte(member)...)
 			}
 
@@ -165,7 +165,7 @@ func (n *network) disconnectEmitter() {
 	for _, m := range n.node.Members {
 		var (
 			req *http.Request
-			uri = fmt.Sprintf(baseURI, m.Address, m.Port, disconnectPath)
+			uri string = fmt.Sprintf(baseURI, m.Address, m.Port, disconnectPath)
 		)
 
 		if req, e = http.NewRequest(http.MethodDelete, uri, nil); e != nil {
@@ -199,10 +199,10 @@ func (n *network) messageEmitter(message []byte) {
 	for _, m := range n.node.Members {
 		var (
 			req *http.Request
-			uri = fmt.Sprintf(baseURI, m.Address, m.Port, broadcastPath)
+			uri string = fmt.Sprintf(baseURI, m.Address, m.Port, broadcastPath)
 		)
 
-		var body = bytes.NewBuffer(message)
+		var body *bytes.Buffer = bytes.NewBuffer(message)
 		if req, e = http.NewRequest(http.MethodPost, uri, body); e != nil {
 			n.node.log("Error sending message: %s", e.Error())
 		}

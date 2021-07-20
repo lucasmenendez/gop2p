@@ -1,14 +1,7 @@
 // Package gop2p implements simple peer-to-peer network node in pure Go.
 package gop2p
 
-import (
-	"fmt"
-	"log"
-	"sync"
-)
-
-// Handler type involves function to events handling.
-type Handler func(d []byte)
+import "sync"
 
 // Node struct contains self peer reference and list of network members. Also
 // contains reference to HTTP server node instance and all channels to
@@ -56,14 +49,10 @@ func InitNode(p int, d bool) (n *Node) {
 	return
 }
 
-// On function receives a event trigger and event handler function to call when
-// node receives a emit that event.
-func (n *Node) On(t string, f Handler) {
-	n.events.on(t, f)
-}
-
 // Wait function keeps node alive.
 func (n *Node) Wait() {
+	defer n.waiter.Wait()
+
 	for {
 		select {}
 	}
@@ -87,11 +76,34 @@ func (n *Node) Broadcast(m []byte) {
 	n.outbox <- m
 }
 
+// OnMessage function allows to create a message handler to listen for data from
+// other peers.
+func (n *Node) OnMessage(f func([]byte)) {
+	n.events.on("message", f)
+}
+
+// OnConnection function allows to asign a connection handler, fired when a peer
+// join to the network
+func (n *Node) OnConnection(f func(Peer)) {
+	n.events.on("connection", func(d []byte) {
+		peer := FromBytes(d)
+		f(peer)
+	})
+}
+
+// OnConnection function allows to asign a disconnection handler, fired when a
+// peer leaves the network
+func (n *Node) OnDisconnection(f func(Peer)) {
+	n.events.on("disconnection", func(d []byte) {
+		peer := FromBytes(d)
+		f(peer)
+	})
+}
+
 // startService function adds 1 to node WaitGroup and starts eventLoop and
 // eventListener goroutines.
 func (n *Node) startService() {
 	n.waiter.Add(1)
-	defer n.waiter.Wait()
 	go n.eventLoop()
 	go n.eventListeners()
 }
@@ -150,13 +162,4 @@ func (n *Node) eventListeners() {
 	n.network = newNetwork(n)
 	n.log("Listen at %s:%s", n.Self.Address, n.Self.Port)
 	n.network.start()
-}
-
-// log function logs message provided formated and adding seld peer information
-// trace.
-func (n *Node) log(m string, args ...interface{}) {
-	if n.debug {
-		m = fmt.Sprintf(m, args...)
-		log.Printf("[%s:%s] %s\n", n.Self.Address, n.Self.Port, m)
-	}
 }

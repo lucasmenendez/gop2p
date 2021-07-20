@@ -60,6 +60,12 @@ func (p Peer) toBytes() (d []byte) {
 	return
 }
 
+// FromBytes function returns deserialized peer from json.
+func FromBytes(d []byte) (p Peer) {
+	_ = json.Unmarshal(d, &p)
+	return
+}
+
 // Peers involves list of peer
 type Peers []Peer
 

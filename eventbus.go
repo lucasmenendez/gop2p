@@ -5,6 +5,9 @@ import (
 	"sync"
 )
 
+// Handler type involves function to events handling.
+type Handler func(d []byte)
+
 // eventBus struct contains a list handlers associated with its trigger
 // definition, and mutex to control handlers access.
 type eventBus struct {

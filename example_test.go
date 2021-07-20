@@ -15,17 +15,17 @@ func Example() {
 	defer main.Wait()
 
 	// Set a connection handler
-	main.On("connection", func(_ []byte) {
+	main.OnConnection(func(_ gop2p.Peer) {
 		fmt.Printf("[main handler] -> Connected\n")
 	})
 
 	// Set a message handler.
-	main.On("message", func(msg []byte) {
+	main.OnMessage(func(msg []byte) {
 		fmt.Printf("[main handler] -> Message: %s\n", string(msg))
 	})
 
 	// Set a disconnection handler
-	main.On("disconnection", func(_ []byte) {
+	main.OnDisconnection(func(_ gop2p.Peer) {
 		fmt.Printf("[main handler] -> Disconnected\n")
 	})
 
