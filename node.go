@@ -82,7 +82,7 @@ func (n *Node) OnMessage(f func([]byte)) {
 	n.events.on("message", f)
 }
 
-// OnConnection function allows to asign a connection handler, fired when a peer
+// OnConnection function allows to assign a connection handler, fired when a peer
 // join to the network
 func (n *Node) OnConnection(f func(Peer)) {
 	n.events.on("connection", func(d []byte) {
@@ -91,7 +91,7 @@ func (n *Node) OnConnection(f func(Peer)) {
 	})
 }
 
-// OnConnection function allows to asign a disconnection handler, fired when a
+// OnConnection function allows to assign a disconnection handler, fired when a
 // peer leaves the network
 func (n *Node) OnDisconnection(f func(Peer)) {
 	n.events.on("disconnection", func(d []byte) {
