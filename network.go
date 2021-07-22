@@ -143,7 +143,9 @@ func (n *network) connectEmitter(p Peer) {
 // new nodes connection. Create new member with headers info.
 func (n *network) connectListener() listener {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet {
+		if r.Method == http.MethodOptions {
+			return
+		} else if r.Method == http.MethodGet {
 			var a, p string = r.Header.Get(peeraddress), r.Header.Get(peerport)
 			n.node.join <- Peer{p, a}
 
@@ -153,6 +155,7 @@ func (n *network) connectListener() listener {
 				members = append(members, []byte(member)...)
 			}
 
+			w.Header().Set("Access-Control-Allow-Origin", "*")
 			w.Header().Set("Content-Type", contentType)
 			w.Write(members)
 		} else {
@@ -189,7 +192,10 @@ func (n *network) disconnectEmitter() {
 // emitter peer via leave channel.
 func (n *network) disconnectListener() listener {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodDelete {
+		if r.Method == http.MethodOptions {
+			return
+		} else if r.Method == http.MethodDelete {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
 			var a, p string = r.Header.Get(peeraddress), r.Header.Get(peerport)
 			n.node.leave <- Peer{p, a}
 		}
@@ -224,14 +230,22 @@ func (n *network) messageEmitter(message []byte) {
 // new messages broadcast and send it to inbox channel.
 func (n *network) messageListener() listener {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost {
+		if r.Method == http.MethodOptions {
+			return
+		} else if r.Method == http.MethodPost {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
 			defer r.Body.Close()
 
 			if body, e := ioutil.ReadAll(r.Body); e != nil {
 				n.node.log("Error receiving message: %s", e.Error())
 				n.node.disconnect <- true
 			} else {
-				n.node.inbox <- body
+				var a, p string = r.Header.Get(peeraddress), r.Header.Get(peerport)
+
+				n.node.inbox <- message{
+					data: body,
+					from: Peer{p, a},
+				}
 			}
 		}
 	}

@@ -6,7 +6,7 @@ import (
 )
 
 // Handler type involves function to events handling.
-type Handler func(d []byte)
+type Handler func(d []byte, p Peer)
 
 // eventBus struct contains a list handlers associated with its trigger
 // definition, and mutex to control handlers access.
@@ -40,12 +40,12 @@ func (eb *eventBus) on(t string, f Handler) error {
 
 // emit function fires event trigger calling its associated handler,
 // if that handler exists.
-func (eb *eventBus) emit(t string, d []byte) {
+func (eb *eventBus) emit(t string, d []byte, p Peer) {
 	eb.m.Lock()
 	f, ok := eb.h[t]
 	eb.m.Unlock()
 
 	if ok {
-		f(d)
+		f(d, p)
 	}
 }

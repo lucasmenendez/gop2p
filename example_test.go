@@ -12,7 +12,6 @@ func Example() {
 	// handlers.
 	main := gop2p.InitNode(5001, false)
 	// Wait for connections.
-	defer main.Wait()
 
 	// Set a connection handler
 	main.OnConnection(func(_ gop2p.Peer) {
@@ -20,7 +19,7 @@ func Example() {
 	})
 
 	// Set a message handler.
-	main.OnMessage(func(msg []byte) {
+	main.OnMessage(func(msg []byte, _ gop2p.Peer) {
 		fmt.Printf("[main handler] -> Message: %s\n", string(msg))
 	})
 
@@ -37,7 +36,6 @@ func Example() {
 		// manually, use CreatePeer function.
 		entry := main.Self
 		node := gop2p.InitNode(5002, true)
-		defer node.Wait()
 
 		// Connect to main node peer.
 		node.Connect(entry)
@@ -55,7 +53,6 @@ func Example() {
 		entry := main.Self
 
 		node := gop2p.InitNode(5003, false)
-		defer node.Wait()
 
 		node.Connect(entry)
 		time.Sleep(2 * time.Second)

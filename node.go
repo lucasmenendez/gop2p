@@ -1,9 +1,7 @@
 // Package gop2p implements simple peer-to-peer network node in pure Go.
 package gop2p
 
-import (
-	"sync"
-)
+import "sync"
 
 // Node struct contains self peer reference and list of network members. Also
 // contains reference to HTTP server node instance and all channels to
@@ -14,11 +12,11 @@ type Node struct {
 
 	network *network
 
-	inbox      chan []byte
-	outbox     chan []byte
+	inbox      chan message
+	outbox     chan message
 	connect    chan Peer
-	join       chan Peer
 	disconnect chan bool
+	join       chan Peer
 	leave      chan Peer
 
 	waiter *sync.WaitGroup
@@ -35,8 +33,8 @@ func InitNode(p int, d bool) (n *Node) {
 	n = &Node{
 		Self:       Me(p),
 		Members:    Peers{},
-		inbox:      make(chan []byte),
-		outbox:     make(chan []byte),
+		inbox:      make(chan message),
+		outbox:     make(chan message),
 		connect:    make(chan Peer),
 		join:       make(chan Peer),
 		disconnect: make(chan bool),
@@ -75,20 +73,22 @@ func (n *Node) Disconnect() {
 // Broadcast function emmits a message to the network passing received Content
 // to broadcasting service.
 func (n *Node) Broadcast(m []byte) {
-	n.outbox <- m
+	n.outbox <- message{
+		data: m,
+		from: n.Self,
+	}
 }
 
 // OnMessage function allows to create a message handler to listen for data from
 // other peers.
-func (n *Node) OnMessage(f func([]byte)) {
+func (n *Node) OnMessage(f func([]byte, Peer)) {
 	n.events.on("message", f)
 }
 
 // OnConnection function allows to assign a connection handler, fired when a peer
 // join to the network
 func (n *Node) OnConnection(f func(Peer)) {
-	n.events.on("connection", func(d []byte) {
-		peer := FromBytes(d)
+	n.events.on("connection", func(_ []byte, peer Peer) {
 		f(peer)
 	})
 }
@@ -96,8 +96,7 @@ func (n *Node) OnConnection(f func(Peer)) {
 // OnConnection function allows to assign a disconnection handler, fired when a
 // peer leaves the network
 func (n *Node) OnDisconnection(f func(Peer)) {
-	n.events.on("disconnection", func(d []byte) {
-		peer := FromBytes(d)
+	n.events.on("disconnection", func(_ []byte, peer Peer) {
 		f(peer)
 	})
 }
@@ -117,14 +116,14 @@ func (n *Node) eventLoop() {
 
 	for {
 		select {
-		case d := <-n.inbox:
-			n.events.emit("message", d)
-			n.log("Message received: '%s'", d)
+		case m := <-n.inbox:
+			n.events.emit("message", m.data, m.from)
+			n.log("Message received: %s", m.String())
 
 		case m := <-n.outbox:
 			if len(n.Members) > 0 {
-				go n.network.messageEmitter(m)
-				n.log("Message sended: '%s'", m)
+				go n.network.messageEmitter(m.data)
+				n.log("Message sended: %s", m.String())
 			} else {
 				n.log("Broadcasting aborted. Empty network!")
 			}
@@ -136,7 +135,7 @@ func (n *Node) eventLoop() {
 		case p := <-n.join:
 			if !n.Members.contains(p) && !n.Self.isMe(p) {
 				n.Members = append(n.Members, p)
-				n.events.emit("connection", p.toBytes())
+				n.events.emit("connection", nil, p)
 				n.log("Connected to [%s:%s]", p.Address, p.Port)
 			}
 
@@ -152,7 +151,7 @@ func (n *Node) eventLoop() {
 		case p := <-n.leave:
 			if n.Members.contains(p) && !n.Self.isMe(p) {
 				n.Members = n.Members.delete(p)
-				n.events.emit("disconnection", p.toBytes())
+				n.events.emit("disconnection", nil, p)
 				n.log("Disconnected from [%s:%s]", p.Address, p.Port)
 			}
 		}
