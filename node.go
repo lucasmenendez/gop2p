@@ -93,8 +93,8 @@ func (n *Node) OnConnection(f func(Peer)) {
 	})
 }
 
-// OnConnection function allows to assign a disconnection handler, fired when a
-// peer leaves the network
+// OnDisconnection function allows to assign a disconnection handler, fired when
+// a peer leaves the network.
 func (n *Node) OnDisconnection(f func(Peer)) {
 	n.events.on("disconnection", func(_ []byte, peer Peer) {
 		f(peer)
