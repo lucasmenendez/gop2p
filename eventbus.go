@@ -5,8 +5,7 @@ import (
 	"sync"
 )
 
-// Handler type involves function to events handling. Includes the data to
-// transmit associated with the data sender.
+// Handler type involves function to events handling.
 type Handler func(d []byte, p Peer)
 
 // eventBus struct contains a list handlers associated with its trigger
