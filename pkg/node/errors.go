@@ -1,6 +1,10 @@
-package gop2p
+package node
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/lucasmenendez/gop2p/pkg/message"
+)
 
 const (
 	CONNECTION_ERR = iota
@@ -11,7 +15,7 @@ type NodeErr struct {
 	ErrCode int
 	Text    string
 	Trace   error
-	Message *Message
+	Message *message.Message
 }
 
 func (err *NodeErr) Error() string {
@@ -34,10 +38,10 @@ func (err *NodeErr) Error() string {
 	return fmt.Sprintf("%s: %s\n", tag, text)
 }
 
-func ConnErr(text string, err error, msg *Message) *NodeErr {
+func ConnErr(text string, err error, msg *message.Message) *NodeErr {
 	return &NodeErr{CONNECTION_ERR, text, err, msg}
 }
 
-func ParseErr(text string, err error, msg *Message) *NodeErr {
+func ParseErr(text string, err error, msg *message.Message) *NodeErr {
 	return &NodeErr{PARSING_ERR, text, err, msg}
 }

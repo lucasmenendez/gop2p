@@ -1,4 +1,4 @@
-package gop2p
+package peer
 
 import "testing"
 

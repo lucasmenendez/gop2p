@@ -3,10 +3,12 @@ package main
 import (
 	"bufio"
 	"flag"
-	"fmt"
+	"log"
 	"os"
 
 	"github.com/lucasmenendez/gop2p"
+	"github.com/lucasmenendez/gop2p/pkg/message"
+	"github.com/lucasmenendez/gop2p/pkg/peer"
 )
 
 func getOptions() (int, int) {
@@ -25,20 +27,21 @@ func getOptions() (int, int) {
 func main() {
 	selfPort, entryPort := getOptions()
 
-	client := gop2p.NewNode(selfPort)
+	client := gop2p.StartLocalNode(selfPort)
 	defer client.Wait()
 
 	if entryPort > 0 {
-		client.Connect <- gop2p.Me(entryPort)
+		client.Connect <- peer.Me(entryPort)
 	}
 
+	var logger = log.New(os.Stdout, "", 0)
 	go func() {
 		for {
 			select {
 			case msg := <-client.Inbox:
-				fmt.Printf("[%s] -> %s\n", msg.From.String(), string(msg.Data))
+				logger.Printf("[%s] -> %s\n", msg.From.String(), string(msg.Data))
 			case err := <-client.Error:
-				fmt.Println("/ERROR/:", err)
+				logger.Println("/ERROR/:", err)
 			}
 		}
 	}()
@@ -53,7 +56,7 @@ func main() {
 			return
 		}
 
-		var msg = new(gop2p.Message).SetFrom(client.Self).SetData(prompt)
+		var msg = new(message.Message).SetFrom(client.Self).SetData(prompt)
 		client.Outbox <- msg
 	}
 }

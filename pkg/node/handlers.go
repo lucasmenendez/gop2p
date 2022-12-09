@@ -1,6 +1,10 @@
-package gop2p
+package node
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/lucasmenendez/gop2p/pkg/message"
+)
 
 // handle function
 func (node *Node) handle() func(http.ResponseWriter, *http.Request) {
@@ -10,7 +14,7 @@ func (node *Node) handle() func(http.ResponseWriter, *http.Request) {
 		}
 
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		var msg = new(Message).FromRequest(r)
+		var msg = new(message.Message).FromRequest(r)
 
 		if r.Method == http.MethodGet {
 			var result = node.connected(msg)
@@ -29,34 +33,21 @@ func (node *Node) handle() func(http.ResponseWriter, *http.Request) {
 }
 
 // connected function
-func (node *Node) connected(msg *Message) (members []byte) {
-	// Get members safely to send them to the node that is trying to join
-	node.membersMtx.Lock()
-	var currentMembers = append(Peers{}, *node.members...)
-	node.membersMtx.Unlock()
-
+func (node *Node) connected(msg *message.Message) (members []byte) {
 	// Encoding current list of members to a JSON to send it
 	var err error
-	if members, err = currentMembers.ToJSON(); err != nil {
+	if members, err = node.Members.ToJSON(); err != nil {
 		// TODO: handle error
 		node.Error <- ParseErr("error encoding members to JSON", err, msg)
 	}
 
 	// Update the current member list safely appending the Message.From Peer
-	node.membersMtx.Lock()
-	defer node.membersMtx.Unlock()
-	if !node.members.Contains(msg.From) {
-		var members = append(*node.members, msg.From)
-		node.members = &members
-	}
-
+	node.Members.Append(msg.From)
 	return
 }
 
 // disconnected function
-func (node *Node) disconnected(msg *Message) {
+func (node *Node) disconnected(msg *message.Message) {
 	// Delete the Message.From Peer from the current member list safely
-	node.membersMtx.Lock()
-	defer node.membersMtx.Unlock()
-	node.members = node.members.Delete(msg.From)
+	node.Members.Delete(msg.From)
 }

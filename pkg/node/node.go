@@ -13,62 +13,54 @@
 //		updates its current network members list unregistering the client
 //		gop2p.Node.
 
-package gop2p
+package node
 
 import (
-	"log"
 	"net/http"
 	"sync"
+
+	"github.com/lucasmenendez/gop2p/pkg/message"
+	"github.com/lucasmenendez/gop2p/pkg/peer"
 )
 
 // Node struct
 type Node struct {
-	Self    *Peer
-	Inbox   chan *Message
-	Outbox  chan *Message
-	Connect chan *Peer
+	Self    *peer.Peer
+	Members *peer.Members
+	Inbox   chan *message.Message
+	Outbox  chan *message.Message
+	Connect chan *peer.Peer
 	Leave   chan struct{}
 	Error   chan error
-
-	members    *Peers
-	membersMtx *sync.Mutex
 
 	client *http.Client
 	waiter sync.WaitGroup
 }
 
 // NewNode function
-func NewNode(p int) (n *Node) {
+func New(self *peer.Peer) (n *Node) {
 	n = &Node{
-		Self:    Me(p),
-		Inbox:   make(chan *Message),
-		Outbox:  make(chan *Message),
-		Connect: make(chan *Peer),
+		Self:    self,
+		Members: peer.EmptyMembers(),
+		Inbox:   make(chan *message.Message),
+		Outbox:  make(chan *message.Message),
+		Connect: make(chan *peer.Peer),
 		Leave:   make(chan struct{}),
 		Error:   make(chan error),
-
-		members:    &Peers{},
-		membersMtx: &sync.Mutex{},
 
 		client: &http.Client{},
 		waiter: sync.WaitGroup{},
 	}
 
-	n.init()
 	return n
 }
 
-// Wait function
-func (node *Node) Wait() {
-	defer node.waiter.Wait()
-}
-
 // init function
-func (node *Node) init() {
+func (node *Node) Start() {
 	go func() {
 		http.HandleFunc("/", node.handle())
 		if err := http.ListenAndServe(node.Self.String(), nil); err != nil {
-			log.Fatalln(err)
+			node.Error <- err
 		}
 	}()
 
@@ -86,4 +78,9 @@ func (node *Node) init() {
 			}
 		}
 	}()
+}
+
+// Wait function
+func (node *Node) Wait() {
+	defer node.waiter.Wait()
 }

@@ -1,7 +1,6 @@
-package gop2p
+package peer
 
 import (
-	"encoding/json"
 	"fmt"
 	"net"
 )
@@ -43,6 +42,11 @@ func Me(port int) (me *Peer) {
 	return
 }
 
+// Equal function
+func (peer *Peer) Equal(to *Peer) bool {
+	return peer.Address == to.Address && peer.Port == to.Port
+}
+
 // String function
 func (peer *Peer) String() string {
 	return fmt.Sprintf(baseString, peer.Address, peer.Port)
@@ -51,47 +55,4 @@ func (peer *Peer) String() string {
 // Hostname function
 func (peer *Peer) Hostname() string {
 	return fmt.Sprintf(baseHostname, peer.Address, peer.Port)
-}
-
-// Peers involves list of peer
-type Peers []*Peer
-
-// Contains function returns if current list of peer contains other provided.
-func (peers Peers) Contains(p *Peer) bool {
-	for _, pn := range peers {
-		if pn.Address == p.Address && pn.Port == p.Port {
-			return true
-		}
-	}
-
-	return false
-}
-
-// Delete function returns a copy of current list of peer removing peer provided
-// previously.
-func (peers *Peers) Delete(p *Peer) *Peers {
-	var result = Peers{}
-	for _, pn := range *peers {
-		if pn.Address != p.Address || pn.Port != p.Port {
-			result = append(result, pn)
-		}
-	}
-
-	peers = &result
-	return peers
-}
-
-// ToJSON function
-func (peers *Peers) ToJSON() ([]byte, error) {
-	return json.Marshal(peers)
-}
-
-// FromJSON
-func (peers *Peers) FromJSON(input []byte) (*Peers, error) {
-	peers = &Peers{}
-	if err := json.Unmarshal(input, peers); err != nil {
-		return nil, err
-	}
-
-	return peers, nil
 }
