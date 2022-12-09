@@ -15,8 +15,6 @@
 package gop2p
 
 import (
-	"fmt"
-
 	"github.com/lucasmenendez/gop2p/pkg/node"
 	"github.com/lucasmenendez/gop2p/pkg/peer"
 )
@@ -33,7 +31,7 @@ func StartLocalNode(port int) *node.Node {
 // StartLocalNode functions creates and starts a new Node with the a peer
 // initialized with the address and port provided as arguments.
 func StartNode(address string, port int) *node.Node {
-	var peer = &peer.Peer{Address: address, Port: fmt.Sprint(port)}
+	var peer = peer.New(address, port)
 	var n = node.New(peer)
 	n.Start()
 	return n

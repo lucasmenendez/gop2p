@@ -22,6 +22,15 @@ type Peer struct {
 	Address string `json:"address"`
 }
 
+// New function creates a peer with the provided address and port as argument
+// and returns it.
+func New(address string, port int) *Peer {
+	return &Peer{
+		Address: address,
+		Port:    fmt.Sprint(port),
+	}
+}
+
 // Me function creates and returns a new peer with the current host address and
 // the port provided as input.
 func Me(port int) (me *Peer) {
