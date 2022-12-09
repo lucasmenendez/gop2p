@@ -10,7 +10,7 @@ func (node *Node) Connect(peer Peer) {
 	var msg = new(Message).SetType(CONNECT).SetFrom(node.Self)
 	var req, err = msg.Request(peer.URI())
 	if err != nil {
-		// handle error
+		// TODO: handle error
 		node.Logger.Fatalf("[%s] error creating the connection request: %v\n",
 			node.Self.String(), err)
 	}
@@ -18,7 +18,7 @@ func (node *Node) Connect(peer Peer) {
 	// Try to join into the network through the provided peer
 	var res *http.Response
 	if res, err = node.client.Do(req); err != nil {
-		// handle error
+		// TODO: handle error
 		node.Logger.Fatalf("[%s] error sending connection request: %v\n",
 			node.Self.String(), err)
 	}
@@ -27,7 +27,7 @@ func (node *Node) Connect(peer Peer) {
 	var body []byte
 	defer res.Body.Close()
 	if body, err = io.ReadAll(res.Body); err != nil {
-		// handle error
+		// TODO: handle error
 		node.Logger.Fatalf("[%s] error parsing connection response: %v\n",
 			node.Self.String(), err)
 	}
@@ -62,20 +62,23 @@ func (node *Node) Disconnect() {
 }
 
 func (node *Node) Broadcast(msg *Message) {
+	// Get current members safely
 	node.membersMtx.Lock()
 	var currentMembers = append(Peers{}, node.members...)
 	node.membersMtx.Unlock()
 
+	// Iterate over each member encoding as a request and performing it with
+	// the provided Message.
 	for _, peer := range currentMembers {
 		var req, err = msg.Request(peer.URI())
 		if err != nil {
-			// handle error
+			// TODO: handle error
 			node.Logger.Fatalf("[%s] error creating the message request: %v\n",
 				node.Self.String(), err)
 		}
 
 		if _, err = node.client.Do(req); err != nil {
-			// handle error
+			// TODO: handle error
 			node.Logger.Fatalf("[%s] error sending the message request: %v\n",
 				node.Self.String(), err)
 		}

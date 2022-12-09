@@ -28,17 +28,19 @@ func (node *Node) handle() func(http.ResponseWriter, *http.Request) {
 }
 
 func (node *Node) connectHandler(msg *Message) (members []byte) {
-	// Get members safely to response them to the node that is trying to join
+	// Get members safely to send them to the node that is trying to join
 	node.membersMtx.Lock()
 	var currentMembers = append(Peers{}, node.members...)
 	node.membersMtx.Unlock()
 
+	// Encoding current list of members to a JSON to send it
 	var err error
 	if members, err = currentMembers.ToJSON(); err != nil {
 		node.Logger.Fatalf("[%s] error encoding members: %v\n",
 			node.Self.String(), err)
 	}
 
+	// Update the current member list safely appending the Message.From Peer
 	node.membersMtx.Lock()
 	defer node.membersMtx.Unlock()
 	if !node.members.Contains(msg.From) {
@@ -49,6 +51,7 @@ func (node *Node) connectHandler(msg *Message) (members []byte) {
 }
 
 func (node *Node) disconnectHandler(msg *Message) {
+	// Delete the Message.From Peer from the current member list safely
 	node.membersMtx.Lock()
 	defer node.membersMtx.Unlock()
 	node.members = node.members.Delete(msg.From)
