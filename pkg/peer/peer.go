@@ -1,3 +1,7 @@
+// peer package abstracts the logic of two structs: the Peer, that
+// contains peer address and port, information that identifies any node and
+// allows to others to communicate with it; and the Members, a thread-safe list
+// of network peers.
 package peer
 
 import (
@@ -11,14 +15,15 @@ const baseHostname string = "http://%s:%s"
 // baseString contains node address template
 const baseString string = "%s:%s"
 
-// Peer struct contains peer ip address and port to communicate with ir.
+// Peer struct contains peer address and port, information that identifies any
+// node and allows to others to communicate with it.
 type Peer struct {
 	Port    string `json:"port"`
 	Address string `json:"address"`
 }
 
-// Me function involves Createpeer function getting current host ip address
-// previously.
+// Me function creates and returns a new peer with the current host address and
+// the port provided as input.
 func Me(port int) (me *Peer) {
 	me = &Peer{
 		Address: "localhost",
@@ -42,17 +47,18 @@ func Me(port int) (me *Peer) {
 	return
 }
 
-// Equal function
+// Equal function returns if the current peer is the same that the provided one.
+// It seems that both has the same address and port.
 func (peer *Peer) Equal(to *Peer) bool {
 	return peer.Address == to.Address && peer.Port == to.Port
 }
 
-// String function
+// String function returns a human-readable format of the current peer.
 func (peer *Peer) String() string {
 	return fmt.Sprintf(baseString, peer.Address, peer.Port)
 }
 
-// Hostname function
+// Hostname function returns the current peer information as URL form.
 func (peer *Peer) Hostname() string {
 	return fmt.Sprintf(baseHostname, peer.Address, peer.Port)
 }
