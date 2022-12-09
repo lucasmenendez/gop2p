@@ -1,8 +1,6 @@
 package gop2p
 
-import (
-	"net/http"
-)
+import "net/http"
 
 // handle function
 func (node *Node) handle() func(http.ResponseWriter, *http.Request) {

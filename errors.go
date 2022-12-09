@@ -1,8 +1,6 @@
 package gop2p
 
-import (
-	"fmt"
-)
+import "fmt"
 
 const (
 	CONNECTION_ERR = iota
