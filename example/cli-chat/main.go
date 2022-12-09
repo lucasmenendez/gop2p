@@ -10,8 +10,8 @@ import (
 )
 
 func getOptions() (int, int) {
-	var selfPortFlag = flag.Int("-self", 5000, "self node port")
-	var entryPortFlag = flag.Int("-entry", 5000, "entrypoint node port")
+	var selfPortFlag = flag.Int("self", 5000, "self node port")
+	var entryPortFlag = flag.Int("entry", 5000, "entrypoint node port")
 	flag.Parse()
 
 	var selfPort, entryPort = *selfPortFlag, *entryPortFlag
@@ -29,8 +29,7 @@ func main() {
 	defer client.Wait()
 
 	if entryPort > 0 {
-		entryPeer := gop2p.Me(entryPort)
-		client.Connect(entryPeer)
+		client.Connect <- gop2p.Me(entryPort)
 	}
 
 	go func() {
@@ -50,7 +49,8 @@ func main() {
 		prompt = prompt[:len(prompt)-1]
 
 		if string(prompt) == "exit" {
-			break
+			close(client.Leave)
+			return
 		}
 
 		var msg = new(gop2p.Message).SetFrom(client.Self).SetData(prompt)

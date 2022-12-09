@@ -27,6 +27,7 @@ type Message struct {
 	From *Peer
 }
 
+// SetType function
 func (m *Message) SetType(t int) *Message {
 	if t == CONNECT || t == DISCONNECT {
 		m.Type = t
@@ -37,14 +38,16 @@ func (m *Message) SetType(t int) *Message {
 	return m
 }
 
-func (m *Message) SetData(data []byte) *Message {
-	m.Type = PLAIN
-	m.Data = data
+// SetFrom function
+func (m *Message) SetFrom(peer *Peer) *Message {
+	m.From = peer
 	return m
 }
 
-func (m *Message) SetFrom(peer *Peer) *Message {
-	m.From = peer
+// SetData function
+func (m *Message) SetData(data []byte) *Message {
+	m.Type = PLAIN
+	m.Data = data
 	return m
 }
 
@@ -53,6 +56,7 @@ func (m *Message) String() string {
 	return fmt.Sprintf("'%s' {from %s:%s}", string(m.Data), m.From.Address, m.From.Port)
 }
 
+// GetRequest function
 func (m *Message) GetRequest(uri string) (*http.Request, error) {
 	var method = http.MethodPost
 	if m.Type == CONNECT {
@@ -73,6 +77,7 @@ func (m *Message) GetRequest(uri string) (*http.Request, error) {
 	return request, nil
 }
 
+// FromRequest function
 func (m *Message) FromRequest(req *http.Request) *Message {
 	if m.Type = PLAIN; req.Method == http.MethodGet {
 		m.Type = CONNECT

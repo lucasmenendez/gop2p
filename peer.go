@@ -10,7 +10,7 @@ import (
 const baseHostname string = "http://%s:%s"
 
 // baseString contains node address template
-const baseString string = "http://%s:%s"
+const baseString string = "%s:%s"
 
 // Peer struct contains peer ip address and port to communicate with ir.
 type Peer struct {
@@ -43,16 +43,12 @@ func Me(port int) (me *Peer) {
 	return
 }
 
-// isMe function compares current peer with other to check if both peers are
-// equal.
-func (me *Peer) IsMe(peer *Peer) bool {
-	return peer.Address == me.Address && peer.Port == me.Port
-}
-
+// String function
 func (peer *Peer) String() string {
 	return fmt.Sprintf(baseString, peer.Address, peer.Port)
 }
 
+// Hostname function
 func (peer *Peer) Hostname() string {
 	return fmt.Sprintf(baseHostname, peer.Address, peer.Port)
 }
@@ -60,7 +56,7 @@ func (peer *Peer) Hostname() string {
 // Peers involves list of peer
 type Peers []*Peer
 
-// contains function returns if current list of peer contains other provided.
+// Contains function returns if current list of peer contains other provided.
 func (peers Peers) Contains(p *Peer) bool {
 	for _, pn := range peers {
 		if pn.Address == p.Address && pn.Port == p.Port {
@@ -71,25 +67,29 @@ func (peers Peers) Contains(p *Peer) bool {
 	return false
 }
 
-// delete function returns a copy of current list of peer removing peer provided
+// Delete function returns a copy of current list of peer removing peer provided
 // previously.
-func (ps Peers) Delete(p *Peer) (r Peers) {
-	for _, pn := range ps {
+func (peers *Peers) Delete(p *Peer) *Peers {
+	var result = Peers{}
+	for _, pn := range *peers {
 		if pn.Address != p.Address || pn.Port != p.Port {
-			r = append(r, pn)
+			result = append(result, pn)
 		}
 	}
 
-	return
+	peers = &result
+	return peers
 }
 
-func (peers Peers) ToJSON() ([]byte, error) {
+// ToJSON function
+func (peers *Peers) ToJSON() ([]byte, error) {
 	return json.Marshal(peers)
 }
 
-func PeersFromJSON(input []byte) (Peers, error) {
-	var peers = Peers{}
-	if err := json.Unmarshal(input, &peers); err != nil {
+// FromJSON
+func (peers *Peers) FromJSON(input []byte) (*Peers, error) {
+	peers = &Peers{}
+	if err := json.Unmarshal(input, peers); err != nil {
 		return nil, err
 	}
 

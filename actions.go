@@ -5,7 +5,8 @@ import (
 	"net/http"
 )
 
-func (node *Node) Connect(peer *Peer) {
+// connect function
+func (node *Node) connect(peer *Peer) {
 	// Create the connect request using a message
 	var msg = new(Message).SetType(CONNECT).SetFrom(node.Self)
 	var req, err = msg.GetRequest(peer.Hostname())
@@ -29,39 +30,48 @@ func (node *Node) Connect(peer *Peer) {
 		node.Error <- ParseErr("error reading peer response body", err, msg)
 	}
 
-	var membersData = Peers{}
-	if membersData, err = PeersFromJSON(body); err != nil {
+	var membersData = new(Peers)
+	if membersData, err = membersData.FromJSON(body); err != nil {
 		// TODO: handle error
 		node.Error <- ParseErr("error parsing incoming member list", err, msg)
 	}
 
 	// Update current members
 	node.membersMtx.Lock()
-	for _, member := range membersData {
+	for _, member := range *membersData {
 		if !node.members.Contains(member) {
-			node.members = append(node.members, member)
+			var members = append(*node.members, member)
+			node.members = &members
 		}
 	}
 	node.membersMtx.Unlock()
 
 	// Send the same message to each member to greet them
-	node.Broadcast(msg)
+	node.broadcast(msg)
 
 	// Safe append the connected peer
 	node.membersMtx.Lock()
 	defer node.membersMtx.Unlock()
-	node.members = append(node.members, peer)
+	var members = append(*node.members, peer)
+	node.members = &members
 }
 
-func (node *Node) Disconnect() {
+// disconnect function
+func (node *Node) disconnect() {
+	defer node.waiter.Done()
+
 	var msg = new(Message).SetType(DISCONNECT).SetFrom(node.Self)
-	node.Broadcast(msg)
+	node.broadcast(msg)
+
+	close(node.Inbox)
+	close(node.Outbox)
 }
 
-func (node *Node) Broadcast(msg *Message) {
+// broadcast function
+func (node *Node) broadcast(msg *Message) {
 	// Get current members safely
 	node.membersMtx.Lock()
-	var currentMembers = append(Peers{}, node.members...)
+	var currentMembers = append(Peers{}, *node.members...)
 	node.membersMtx.Unlock()
 
 	// Iterate over each member encoding as a request and performing it with
