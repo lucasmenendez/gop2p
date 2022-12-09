@@ -18,33 +18,33 @@ gop2p implements the following functional workflow:
 
 ```mermaid
 sequenceDiagram
-participant Client (gop2p.Node)
-participant Network entrypoint (gop2p.Node)
-participant Network nodes (gop2p.Node)
+participant Client (Node)
+participant Network entrypoint (Node)
+participant Network peers (Node)
 
-Note over Client (gop2p.Node),Network entrypoint (gop2p.Node): 1. Connect to the network
-Client (gop2p.Node) ->> Network entrypoint (gop2p.Node): Send connection request to knowed Network entrypoint
-Network entrypoint (gop2p.Node) -->> Network entrypoint (gop2p.Node): Register Client as new member
-Network entrypoint (gop2p.Node) -->> Client (gop2p.Node): Response with the current Node list of the network
-Client (gop2p.Node) -->> Client (gop2p.Node): Register all the received Node's
-Client (gop2p.Node) ->> Network nodes (gop2p.Node): Send connection request
-Network nodes (gop2p.Node) -->> Network nodes (gop2p.Node): Register Client as new member
+Note over Client (Node),Network entrypoint (Node): 1. Connect to the network
+Client (Node) ->> Network entrypoint (Node): Send connection request to knowed Network entrypoint
+Network entrypoint (Node) -->> Network entrypoint (Node): Register Client as new member
+Network entrypoint (Node) -->> Client (Node): Response with the current Node list of the network
+Client (Node) -->> Client (Node): Register all the received Node's
+Client (Node) ->> Network peers (Node): Send connection request
+Network peers (Node) -->> Network peers (Node): Register Client as new member
 
-Note over Client (gop2p.Node),Network nodes (gop2p.Node): 2. Broadcasting message
-Client (gop2p.Node) -->> Client (gop2p.Node): Create the message
-Client (gop2p.Node) ->> Network nodes (gop2p.Node): Broadcast message request to current network Node's
+Note over Client (Node),Network peers (Node): 2. Broadcasting message
+Client (Node) -->> Client (Node): Create the message
+Client (Node) ->> Network peers (Node): Broadcast message request to current network Node's
 
-Network nodes (gop2p.Node) -->> Network nodes (gop2p.Node): Handle received Client message
+Network peers (Node) -->> Network peers (Node): Handle received Client message
 
-Note over Client (gop2p.Node),Network nodes (gop2p.Node): 3. Disconnection from the network
-Client (gop2p.Node) -->> Client (gop2p.Node): Create the disconnect request
-Client (gop2p.Node) ->> Network nodes (gop2p.Node): Broadcast disconnect request to current network Node's
+Note over Client (Node),Network peers (Node): 3. Disconnection from the network
+Client (Node) -->> Client (Node): Create the disconnect request
+Client (Node) ->> Network peers (Node): Broadcast disconnect request to current network Node's
 
-Network nodes (gop2p.Node) -->> Network nodes (gop2p.Node): Unregister Client from current Node's network
+Network peers (Node) -->> Network peers (Node): Unregister Client from current Node's network
 ```
 
 #### 1. Connect to the network
-The client `gop2p.Node` know a entry point of the desired network (other `gop2p.Node` that is already connected). The entry point response with the current network `gop2p.Node`'s and updates its members `gop2p.Node` list. The client `gop2p.Node` broadcast a connection request to every `gop2p.Node` received from entry point.
+The client `Node` know a entry point of the desired network (other `Node` that is already connected). The entry point response with the current network `Node`'s and updates its members `Node` list. The client `Node` broadcast a connection request to every `Node` received from entry point.
 
 ```go
 package main
@@ -85,7 +85,7 @@ func main() {
 ```
 
 #### 2. Broadcasting 
-The client `gop2p.Node` prepares and broadcast a `gop2p.Message` to every network `gop2p.Node`.
+The client `Node` prepares and broadcast a `gop2p.Message` to every network `Node`.
 
 ```go
 package main
@@ -110,7 +110,7 @@ func main() {
 ```
 
 #### 3. Disconnect 
-The client `gop2p.Node` broadcast a disconnection request to every network `gop2p.Node`. This `gop2p.Node`'s updates its current network members list unregistering the client `gop2p.Node`.
+The client `Node` broadcast a disconnection request to every network `Node`. This `Node`'s updates its current network members list unregistering the client `Node`.
 
 ```go
 package main

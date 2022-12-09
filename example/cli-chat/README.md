@@ -7,7 +7,7 @@ This example allows to the use to execute a `gop2p.Node` in two modes:
  - **Host mode**: Listen for ever for entry connections and allows to broadcast messages via cli prompt. To run it execute: 
 
     ```sh
-    go run example/cli-chat/main.go --self <host_port>
+    go run example/cli-chat/main.go --self=<host_port>
     ```
 
 
