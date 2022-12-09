@@ -21,6 +21,8 @@ import (
 	"github.com/lucasmenendez/gop2p/pkg/peer"
 )
 
+// StartLocalNode functions creates a new Node with "localhost" as peer address
+// and the port provided as argument as peer port. It also starts the node.
 func StartLocalNode(port int) *node.Node {
 	var peer = peer.Me(port)
 	var n = node.New(peer)
@@ -28,6 +30,8 @@ func StartLocalNode(port int) *node.Node {
 	return n
 }
 
+// StartLocalNode functions creates and starts a new Node with the a peer
+// initialized with the address and port provided as arguments.
 func StartNode(address string, port int) *node.Node {
 	var peer = &peer.Peer{Address: address, Port: fmt.Sprint(port)}
 	var n = node.New(peer)
