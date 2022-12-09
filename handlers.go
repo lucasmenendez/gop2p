@@ -36,8 +36,8 @@ func (node *Node) connectHandler(msg *Message) (members []byte) {
 	// Encoding current list of members to a JSON to send it
 	var err error
 	if members, err = currentMembers.ToJSON(); err != nil {
-		node.Logger.Fatalf("[%s] error encoding members: %v\n",
-			node.Self.String(), err)
+		// TODO: handle error
+		node.Error <- ParseErr("error encoding members to JSON", err, msg)
 	}
 
 	// Update the current member list safely appending the Message.From Peer

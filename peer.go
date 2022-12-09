@@ -4,11 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"strconv"
 )
 
-// baseURI contains node address template
-const baseURI string = "http://%s:%s"
+// baseHostname contains node address template
+const baseHostname string = "http://%s:%s"
+
+// baseString contains node address template
+const baseString string = "http://%s:%s"
 
 // Peer struct contains peer ip address and port to communicate with ir.
 type Peer struct {
@@ -16,37 +18,26 @@ type Peer struct {
 	Address string `json:"address"`
 }
 
-// CreatePeer function returns manually created peer based on ip address and
-// port provided.
-func CreatePeer(a string, p int) (i Peer) {
-	i.Address = a
-	i.Port = strconv.Itoa(p)
-	return
-}
-
 // Me function involves Createpeer function getting current host ip address
 // previously.
-func Me(p int) (me Peer) {
-	me = CreatePeer("localhost", p)
+func Me(port int) (me *Peer) {
+	me = &Peer{
+		Address: "localhost",
+		Port:    fmt.Sprint(port),
+	}
 
-	var e error
-	var addrs []net.Addr
-	if addrs, e = net.InterfaceAddrs(); e != nil {
+	var addresses, err = net.InterfaceAddrs()
+	if err != nil {
 		return
 	}
 
-	var a string
-	for _, an := range addrs {
-		if ip, ok := an.(*net.IPNet); ok && !ip.IP.IsLoopback() {
+	for _, address := range addresses {
+		if ip, ok := address.(*net.IPNet); ok && !ip.IP.IsLoopback() {
 			if ip.IP.To4() != nil {
-				a = ip.IP.String()
+				me.Address = ip.IP.String()
 				break
 			}
 		}
-	}
-
-	if a != "" {
-		me.Address = a
 	}
 
 	return
@@ -54,36 +45,24 @@ func Me(p int) (me Peer) {
 
 // isMe function compares current peer with other to check if both peers are
 // equal.
-func (p Peer) IsMe(c Peer) bool {
-	return p.Address == c.Address && p.Port == c.Port
+func (me *Peer) IsMe(peer *Peer) bool {
+	return peer.Address == me.Address && peer.Port == me.Port
 }
 
-// toByte function returns serialized json with peer information.
-func (p Peer) ToBytes() (d []byte) {
-	d, _ = json.Marshal(&p)
-	return
+func (peer *Peer) String() string {
+	return fmt.Sprintf(baseString, peer.Address, peer.Port)
 }
 
-func (p Peer) String() string {
-	return p.Address + ":" + p.Port
-}
-
-func (p Peer) URI() string {
-	return fmt.Sprintf(baseURI, p.Address, p.Port)
-}
-
-// FromBytes function returns deserialized peer from json.
-func FromBytes(d []byte) (p Peer) {
-	_ = json.Unmarshal(d, &p)
-	return
+func (peer *Peer) Hostname() string {
+	return fmt.Sprintf(baseHostname, peer.Address, peer.Port)
 }
 
 // Peers involves list of peer
-type Peers []Peer
+type Peers []*Peer
 
 // contains function returns if current list of peer contains other provided.
-func (ps Peers) Contains(p Peer) bool {
-	for _, pn := range ps {
+func (peers Peers) Contains(p *Peer) bool {
+	for _, pn := range peers {
 		if pn.Address == p.Address && pn.Port == p.Port {
 			return true
 		}
@@ -94,7 +73,7 @@ func (ps Peers) Contains(p Peer) bool {
 
 // delete function returns a copy of current list of peer removing peer provided
 // previously.
-func (ps Peers) Delete(p Peer) (r Peers) {
+func (ps Peers) Delete(p *Peer) (r Peers) {
 	for _, pn := range ps {
 		if pn.Address != p.Address || pn.Port != p.Port {
 			r = append(r, pn)
@@ -104,23 +83,15 @@ func (ps Peers) Delete(p Peer) (r Peers) {
 	return
 }
 
-func (ps Peers) ToJSON() ([]byte, error) {
-	return json.Marshal(ps)
+func (peers Peers) ToJSON() ([]byte, error) {
+	return json.Marshal(peers)
 }
 
 func PeersFromJSON(input []byte) (Peers, error) {
-	var records = []map[string]string{}
-	if err := json.Unmarshal(input, &records); err != nil {
+	var peers = Peers{}
+	if err := json.Unmarshal(input, &peers); err != nil {
 		return nil, err
 	}
 
-	var peers = Peers{}
-	for _, record := range records {
-		var peer = Peer{
-			Address: record["address"],
-			Port:    record["port"],
-		}
-		peers = append(peers, peer)
-	}
 	return peers, nil
 }

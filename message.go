@@ -24,7 +24,7 @@ const portHeader string = "PEER_PORT"
 type Message struct {
 	Type int
 	Data []byte
-	From Peer
+	From *Peer
 }
 
 func (m *Message) SetType(t int) *Message {
@@ -43,7 +43,7 @@ func (m *Message) SetData(data []byte) *Message {
 	return m
 }
 
-func (m *Message) SetFrom(peer Peer) *Message {
+func (m *Message) SetFrom(peer *Peer) *Message {
 	m.From = peer
 	return m
 }
@@ -53,7 +53,7 @@ func (m *Message) String() string {
 	return fmt.Sprintf("'%s' {from %s:%s}", string(m.Data), m.From.Address, m.From.Port)
 }
 
-func (m *Message) Request(uri string) (*http.Request, error) {
+func (m *Message) GetRequest(uri string) (*http.Request, error) {
 	var method = http.MethodPost
 	if m.Type == CONNECT {
 		method = http.MethodGet
@@ -80,7 +80,7 @@ func (m *Message) FromRequest(req *http.Request) *Message {
 		m.Type = DISCONNECT
 	}
 
-	m.From = Peer{
+	m.From = &Peer{
 		Address: req.Header.Get(addresHeader),
 		Port:    req.Header.Get(portHeader),
 	}
