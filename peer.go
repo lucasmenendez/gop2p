@@ -2,9 +2,13 @@ package gop2p
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 	"strconv"
 )
+
+// baseURI contains node address template
+const baseURI string = "http://%s:%s"
 
 // Peer struct contains peer ip address and port to communicate with ir.
 type Peer struct {
@@ -50,14 +54,22 @@ func Me(p int) (me Peer) {
 
 // isMe function compares current peer with other to check if both peers are
 // equal.
-func (p Peer) isMe(c Peer) bool {
+func (p Peer) IsMe(c Peer) bool {
 	return p.Address == c.Address && p.Port == c.Port
 }
 
 // toByte function returns serialized json with peer information.
-func (p Peer) toBytes() (d []byte) {
+func (p Peer) ToBytes() (d []byte) {
 	d, _ = json.Marshal(&p)
 	return
+}
+
+func (p Peer) String() string {
+	return p.Address + ":" + p.Port
+}
+
+func (p Peer) URI() string {
+	return fmt.Sprintf(baseURI, p.Address, p.Port)
 }
 
 // FromBytes function returns deserialized peer from json.
@@ -70,7 +82,7 @@ func FromBytes(d []byte) (p Peer) {
 type Peers []Peer
 
 // contains function returns if current list of peer contains other provided.
-func (ps Peers) contains(p Peer) bool {
+func (ps Peers) Contains(p Peer) bool {
 	for _, pn := range ps {
 		if pn.Address == p.Address && pn.Port == p.Port {
 			return true
@@ -82,7 +94,7 @@ func (ps Peers) contains(p Peer) bool {
 
 // delete function returns a copy of current list of peer removing peer provided
 // previously.
-func (ps Peers) delete(p Peer) (r Peers) {
+func (ps Peers) Delete(p Peer) (r Peers) {
 	for _, pn := range ps {
 		if pn.Address != p.Address || pn.Port != p.Port {
 			r = append(r, pn)
@@ -90,4 +102,25 @@ func (ps Peers) delete(p Peer) (r Peers) {
 	}
 
 	return
+}
+
+func (ps Peers) ToJSON() ([]byte, error) {
+	return json.Marshal(ps)
+}
+
+func PeersFromJSON(input []byte) (Peers, error) {
+	var records = []map[string]string{}
+	if err := json.Unmarshal(input, &records); err != nil {
+		return nil, err
+	}
+
+	var peers = Peers{}
+	for _, record := range records {
+		var peer = Peer{
+			Address: record["address"],
+			Port:    record["port"],
+		}
+		peers = append(peers, peer)
+	}
+	return peers, nil
 }
