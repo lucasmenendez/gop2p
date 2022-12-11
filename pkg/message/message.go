@@ -22,7 +22,7 @@ const (
 )
 
 // addressHeader contains default http header key that contains address.
-const addresHeader string = "PEER_ADDRESS"
+const addressHeader string = "PEER_ADDRESS"
 
 // portHeader contains default http header key that contains port.
 const portHeader string = "PEER_PORT"
@@ -39,34 +39,34 @@ type Message struct {
 // SetType function sets the type of the current message to the provided one,
 // and returns this current message. By default, the type of a message will be
 // PlainType, unless other valid type has been provided by argument.
-func (m *Message) SetType(t int) *Message {
-	m.Type = PlainType
+func (msg *Message) SetType(t int) *Message {
+	msg.Type = PlainType
 	if t == ConnectType || t == DisconnectType {
-		m.Type = t
+		msg.Type = t
 	}
 
-	return m
+	return msg
 }
 
 // SetFrom function sets the provided peer as the peer associated to the current
 // message and returns it as result.
-func (m *Message) SetFrom(peer *peer.Peer) *Message {
-	m.From = peer
-	return m
+func (msg *Message) SetFrom(from *peer.Peer) *Message {
+	msg.From = from
+	return msg
 }
 
 // SetData function sets the provided data as the data of the current message
 // and returns it as result.
-func (m *Message) SetData(data []byte) *Message {
-	m.Type = PlainType
-	m.Data = data
-	return m
+func (msg *Message) SetData(data []byte) *Message {
+	msg.Type = PlainType
+	msg.Data = data
+	return msg
 }
 
 // String function returns a human-readable version of Message struct following
 // the format: '[from.address:from.port] data'.
-func (m *Message) String() string {
-	return fmt.Sprintf("[%s] %s", m.From.String(), string(m.Data))
+func (msg *Message) String() string {
+	return fmt.Sprintf("[%s] %s", msg.From.String(), string(msg.Data))
 }
 
 // GetRequest function generates a http.Request to the provided uri endpoint
@@ -74,20 +74,24 @@ func (m *Message) String() string {
 // the message type, the message peer information as http.Header and message
 // data as request body, then return it if everthing was ok, unless returns an
 // error.
-func (m *Message) GetRequest(uri string) (*http.Request, error) {
+func (msg *Message) GetRequest(uri string) (*http.Request, error) {
+	if msg.From == nil || msg.From.Address == "" || msg.From.Port == "" {
+		return nil, errors.New("current message have not peer associated")
+	}
+
 	// Set the correct method based on message type. The connection message
 	// will be "GET" method, the disconnection message will be the "DELETE"
 	// method and the plain message will be "POST".
 	var method = http.MethodPost
-	if m.Type == ConnectType {
+	if msg.Type == ConnectType {
 		method = http.MethodGet
-	} else if m.Type == DisconnectType {
+	} else if msg.Type == DisconnectType {
 		method = http.MethodDelete
 	}
 
 	// Create a buffer with the message data and creates the request with the
 	// defined method.
-	var body *bytes.Buffer = bytes.NewBuffer(m.Data)
+	var body *bytes.Buffer = bytes.NewBuffer(msg.Data)
 	var request, err = http.NewRequest(method, uri, body)
 	if err != nil {
 		var msg = fmt.Sprintf("error generating the request %v", err)
@@ -95,34 +99,36 @@ func (m *Message) GetRequest(uri string) (*http.Request, error) {
 	}
 
 	// Set the message peer information as request headers.
-	request.Header.Add(addresHeader, m.From.Address)
-	request.Header.Add(portHeader, m.From.Port)
+	request.Header.Add(addressHeader, msg.From.Address)
+	request.Header.Add(portHeader, msg.From.Port)
 	return request, nil
 }
 
 // FromRequest function parses a http.Request provided and sets the information
 // that it contains to the current message, then return the modified message
 // too.
-func (m *Message) FromRequest(req *http.Request) *Message {
+func (msg *Message) FromRequest(req *http.Request) *Message {
 	// Decodes the message by the method of the request, by default
 	// PlainMessage.
-	if m.Type = PlainType; req.Method == http.MethodGet {
-		m.Type = ConnectType
+	if msg.Type = PlainType; req.Method == http.MethodGet {
+		msg.Type = ConnectType
 	} else if req.Method == http.MethodDelete {
-		m.Type = DisconnectType
+		msg.Type = DisconnectType
 	}
 
 	// Decodes the peer information from the http.Header's.
-	m.From = &peer.Peer{
-		Address: req.Header.Get(addresHeader),
-		Port:    req.Header.Get(portHeader),
+	msg.From = &peer.Peer{}
+	if msg.From.Address = req.Header.Get(addressHeader); msg.From.Address == "" {
+		return nil
+	} else if msg.From.Port = req.Header.Get(portHeader); msg.From.Port == "" {
+		return nil
 	}
 
 	// If the message type is PlainMessage, read the request body as message
 	// data
-	if m.Type == PlainType {
-		m.Data, _ = io.ReadAll(req.Body)
+	if msg.Type == PlainType {
+		msg.Data, _ = io.ReadAll(req.Body)
 	}
 
-	return m
+	return msg
 }
