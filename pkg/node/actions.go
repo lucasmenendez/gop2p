@@ -8,6 +8,13 @@ import (
 	"github.com/lucasmenendez/gop2p/pkg/peer"
 )
 
+// setConnected function updates the current node status safely using a mutex.
+func (node *Node) setConnected(connected bool) {
+	node.connMtx.Lock()
+	defer node.connMtx.Unlock()
+	node.connected = connected
+}
+
 // connect function allows to a node to join to a network using a knowed a peer
 // that is already into that network. The function request a connection to that
 // peer and it response with the current network members. To complete the
@@ -19,13 +26,14 @@ func (node *Node) connect(entryPoint *peer.Peer) {
 	var req, err = msg.GetRequest(entryPoint.Hostname())
 	if err != nil {
 		node.Error <- ParseErr("error encoding message to request", err, msg)
+		return
 	}
 
 	// Try to join into the network through the provided peer
 	var res *http.Response
 	if res, err = node.client.Do(req); err != nil {
-		// TODO: handle error
 		node.Error <- ConnErr("error trying to connect to a peer", err, msg)
+		return
 	}
 
 	// Reading the list of current members of the network from the peer
@@ -34,12 +42,14 @@ func (node *Node) connect(entryPoint *peer.Peer) {
 	defer res.Body.Close()
 	if body, err = io.ReadAll(res.Body); err != nil {
 		node.Error <- ParseErr("error reading peer response body", err, msg)
+		return
 	}
 
 	// Parsing the received list
 	var receivedMembers = peer.EmptyMembers()
 	if receivedMembers, err = receivedMembers.FromJSON(body); err != nil {
 		node.Error <- ParseErr("error parsing incoming member list", err, msg)
+		return
 	}
 
 	// Update current members
@@ -47,28 +57,29 @@ func (node *Node) connect(entryPoint *peer.Peer) {
 		node.Members.Append(receivedPeer)
 	}
 
+	// Init Leave channel, this channel remain opened while the node is
+	// connected to a network.
+	node.setConnected(true)
+
 	// Send the same message to each member to greet them and append to the
 	// registered members the entrypoint (after send the broadcast the greet to
 	// avoid unnecesary calls).
 	node.broadcast(msg)
 	node.Members.Append(entryPoint)
+
 }
 
-// disconnect function perform a graceful disconnection, stopping other routines
-// warning to other network members about the disconnection and closing
-// remaining channels.
+// disconnect function perform a graceful disconnection, warning to other
+// network members about the disconnection and deleting registered peers from
+// current member list.
 func (node *Node) disconnect() {
-	// Stop routines at the end
-	defer node.waiter.Done()
-
 	// Warn to other network peers about the disconnection
 	var msg = new(message.Message).SetType(message.DisconnectType).SetFrom(node.Self)
 	node.broadcast(msg)
 
-	// Closing channels
-	close(node.Inbox)
-	close(node.Outbox)
-	close(node.Connect)
+	// Clean current member list
+	node.Members = peer.EmptyMembers()
+	node.setConnected(false)
 }
 
 // broadcast function sends the message provided to every peer registered on the

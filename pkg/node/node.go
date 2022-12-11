@@ -17,20 +17,22 @@ import (
 // hidden parameters such as the http.Client associated to the node or a
 // WaitGroup to keep the node working.
 type Node struct {
-	Self    *peer.Peer
-	Members *peer.Members
+	Self    *peer.Peer    // information about current node
+	Members *peer.Members // thread-safe list of peers on the network
 
-	// Only write channel
-	Inbox chan *message.Message
-	Error chan error
+	Inbox chan *message.Message // readable channels to receive messages
+	Error chan error            // readable channels to receive errors
 
-	// Only read channels
-	Outbox  chan *message.Message
-	Connect chan *peer.Peer
-	Leave   chan struct{}
+	Outbox  chan *message.Message // writtable channel to send messages
+	Connect chan *peer.Peer       // writtable channel to connect to a Peer
+	Leave   chan struct{}         // writtable channel to leave the network
 
-	client *http.Client
+	connected bool
+	connMtx   *sync.Mutex
+
 	waiter sync.WaitGroup
+	client *http.Client
+	server *http.Server
 }
 
 // NewNode function create a Node associated to the peer provided as argument.
@@ -39,13 +41,17 @@ func New(self *peer.Peer) (n *Node) {
 		Self:    self,
 		Members: peer.EmptyMembers(),
 		Inbox:   make(chan *message.Message),
+		Error:   make(chan error),
 		Outbox:  make(chan *message.Message),
 		Connect: make(chan *peer.Peer),
 		Leave:   make(chan struct{}),
-		Error:   make(chan error),
 
-		client: &http.Client{},
+		connected: false,
+		connMtx:   &sync.Mutex{},
+
 		waiter: sync.WaitGroup{},
+		client: &http.Client{},
+		server: &http.Server{Addr: self.String()},
 	}
 }
 
@@ -53,14 +59,8 @@ func New(self *peer.Peer) (n *Node) {
 // requests and the second one to handle user actions listening to defined
 // channels.
 func (node *Node) Start() {
-	go func() {
-		// Only listen on root and send every request to node handler. If some
-		// error is registered it will be writted into Error channel.
-		http.HandleFunc("/", node.handle())
-		if err := http.ListenAndServe(node.Self.String(), nil); err != nil {
-			node.Error <- err
-		}
-	}()
+	// Start HTTP server to listen to other network peers requests.
+	go node.startListening()
 
 	// Increase the counter of the current node WaitGroup to wait for the
 	// following goroutine.
@@ -73,16 +73,53 @@ func (node *Node) Start() {
 			case peer := <-node.Connect:
 				node.connect(peer)
 			case msg := <-node.Outbox:
-				go node.broadcast(msg)
+				if node.IsConnected() {
+					go node.broadcast(msg)
+				}
 			case <-node.Leave:
-				node.disconnect()
-				return
+				if node.IsConnected() {
+					node.disconnect()
+					node.Leave = make(chan struct{})
+				}
 			}
 		}
 	}()
 }
 
+// IsConnected function returns the status of the current Node. It returns
+// `true` if the node is already connected to a network, or `false` if it is
+// not connected to any network yet.
+func (node *Node) IsConnected() bool {
+	node.connMtx.Lock()
+	defer node.connMtx.Unlock()
+	return node.connected
+}
+
 // Wait function waits until the WaitGroup of the current node has finished.
 func (node *Node) Wait() {
 	node.waiter.Wait()
+}
+
+// Stop function disconnect the node from the network, stop other goroutines
+// and close the node channels.
+func (node *Node) Stop() {
+	// Stop goroutines
+	node.waiter.Done()
+
+	// If the node is connected, disconnect ir
+	if node.IsConnected() {
+		node.disconnect()
+	}
+
+	// Shutdown the HTTP server
+	if err := node.server.Close(); err != nil {
+		node.Error <- InternalErr("error shuting down the HTTP server", err, nil)
+	}
+
+	// Close other channels
+	close(node.Inbox)
+	close(node.Error)
+	close(node.Outbox)
+	close(node.Connect)
+	close(node.Leave)
 }

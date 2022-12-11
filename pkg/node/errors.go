@@ -45,3 +45,7 @@ func ConnErr(text string, err error, msg *message.Message) *NodeErr {
 func ParseErr(text string, err error, msg *message.Message) *NodeErr {
 	return &NodeErr{PARSING_ERR, text, err, msg}
 }
+
+func InternalErr(text string, err error, msg *message.Message) *NodeErr {
+	return &NodeErr{PARSING_ERR, text, err, msg}
+}

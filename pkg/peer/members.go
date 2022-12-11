@@ -45,11 +45,21 @@ func (members *Members) Len() int {
 // it append safely the provided peer to the current list and returns the
 // modified current members, using its own mutex.
 func (members *Members) Append(peer *Peer) *Members {
-	if !members.Contains(peer) {
-		members.mutex.Lock()
-		members.peers = append(members.peers, peer)
-		members.mutex.Unlock()
+	members.mutex.Lock()
+	defer members.mutex.Unlock()
+
+	var included = false
+	for _, member := range members.peers {
+		if member.Equal(peer) {
+			included = true
+			break
+		}
 	}
+
+	if !included {
+		members.peers = append(members.peers, peer)
+	}
+
 	return members
 }
 
@@ -58,14 +68,13 @@ func (members *Members) Delete(peer *Peer) *Members {
 	members.mutex.Lock()
 	defer members.mutex.Unlock()
 
-	var newMembers = []*Peer{}
-	for _, member := range members.peers {
-		if !member.Equal(peer) {
-			newMembers = append(newMembers, member)
+	for i, member := range members.peers {
+		if member.Equal(peer) {
+			members.peers = append(members.peers[:i], members.peers[i+1:]...)
+			return members
 		}
 	}
 
-	members.peers = newMembers
 	return members
 }
 
