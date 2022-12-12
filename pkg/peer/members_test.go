@@ -1,9 +1,16 @@
 package peer
 
-import "testing"
+import (
+	"reflect"
+	"sync"
+	"testing"
+)
 
 func TestEmptyMembers(t *testing.T) {
-
+	var expected, result = &Members{[]*Peer{}, &sync.Mutex{}}, EmptyMembers()
+	if !reflect.DeepEqual(expected, result) {
+		t.Errorf("expected %v, got %v", expected, result)
+	}
 }
 
 func TestMembersPeers(t *testing.T) {
