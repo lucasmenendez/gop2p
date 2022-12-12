@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"flag"
 	"log"
 	"os"
@@ -55,6 +56,8 @@ func handlePrompt(client *node.Node, entryPoint *peer.Peer) {
 		case "connect":
 			if entryPoint != nil {
 				client.Connect <- entryPoint
+			} else {
+				client.Error <- errors.New("entry point not defined")
 			}
 		case "disconnect":
 			close(client.Leave)
