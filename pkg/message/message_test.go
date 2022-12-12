@@ -2,6 +2,7 @@ package message
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 	"reflect"
@@ -29,14 +30,14 @@ func TestMessageSetType(t *testing.T) {
 }
 
 func TestMessageSetFrom(t *testing.T) {
-	var expected = &peer.Peer{Address: "localhost", Port: "8080"}
+	var expected = &peer.Peer{Address: "localhost", Port: 8080}
 	var msg = new(Message).SetFrom(expected)
 	if !expected.Equal(msg.From) {
 		t.Errorf("expected %s, got %s", expected.String(), msg.From.String())
 	}
 
 	expected.Address = "0.0.0.0"
-	expected.Port = "8081"
+	expected.Port = 8081
 	msg.SetFrom(expected)
 	if !expected.Equal(msg.From) {
 		t.Errorf("expected %s, got %s", expected.String(), msg.From.String())
@@ -61,7 +62,7 @@ func TestMessageGetRequest(t *testing.T) {
 	var buff = bytes.NewBuffer(msg.Data)
 	var expected, _ = http.NewRequest(http.MethodPost, from.Hostname(), buff)
 	expected.Header.Add(addressHeader, from.Address)
-	expected.Header.Add(portHeader, from.Port)
+	expected.Header.Add(portHeader, fmt.Sprint(from.Port))
 
 	var result, err = msg.GetRequest(from.Hostname())
 	if err != nil {
@@ -70,8 +71,8 @@ func TestMessageGetRequest(t *testing.T) {
 		t.Errorf("expected %s, got %s", expected.Method, result.Method)
 	} else if result.Header.Get(addressHeader) != from.Address {
 		t.Errorf("expected %s, got %s", from.Address, result.Header.Get(addressHeader))
-	} else if result.Header.Get(portHeader) != from.Port {
-		t.Errorf("expected %s, got %s", from.Port, result.Header.Get(portHeader))
+	} else if result.Header.Get(portHeader) != fmt.Sprint(from.Port) {
+		t.Errorf("expected %d, got %s", from.Port, result.Header.Get(portHeader))
 	} else if body, _ := io.ReadAll(result.Body); !reflect.DeepEqual(msg.Data, body) {
 		t.Errorf("expected %s, get %s", string(msg.Data), string(body))
 	}
@@ -85,7 +86,7 @@ func TestMessageGetRequest(t *testing.T) {
 	msg = new(Message).SetFrom(from).SetType(ConnectType)
 	expected, _ = http.NewRequest(http.MethodGet, from.Hostname(), nil)
 	expected.Header.Add(addressHeader, from.Address)
-	expected.Header.Add(portHeader, from.Port)
+	expected.Header.Add(portHeader, fmt.Sprint(from.Port))
 
 	result, err = msg.GetRequest(from.Hostname())
 	if err != nil {
@@ -94,8 +95,8 @@ func TestMessageGetRequest(t *testing.T) {
 		t.Errorf("expected %s, got %s", expected.Method, result.Method)
 	} else if result.Header.Get(addressHeader) != from.Address {
 		t.Errorf("expected %s, got %s", from.Address, result.Header.Get(addressHeader))
-	} else if result.Header.Get(portHeader) != from.Port {
-		t.Errorf("expected %s, got %s", from.Port, result.Header.Get(portHeader))
+	} else if result.Header.Get(portHeader) != fmt.Sprint(from.Port) {
+		t.Errorf("expected %d, got %s", from.Port, result.Header.Get(portHeader))
 	}
 }
 
@@ -107,7 +108,7 @@ func TestMessageFromRequest(t *testing.T) {
 	var buff = bytes.NewBuffer(data)
 	var req, _ = http.NewRequest(http.MethodPost, from.Hostname(), buff)
 	req.Header.Add(addressHeader, from.Address)
-	req.Header.Add(portHeader, from.Port)
+	req.Header.Add(portHeader, fmt.Sprint(from.Port))
 
 	var result = new(Message).FromRequest(req)
 	if expected.Type != result.Type {
@@ -115,7 +116,7 @@ func TestMessageFromRequest(t *testing.T) {
 	} else if !expected.From.Equal(result.From) {
 		t.Errorf("expected %s, got %s", expected.From.String(), result.From.String())
 	} else if !reflect.DeepEqual(expected.Data, result.Data) {
-		t.Errorf("expected %s, got %s", string(expected.Data), string(result.Data))
+		t.Errorf("expected %s, got %s", fmt.Sprint(expected.Data), fmt.Sprint(result.Data))
 	}
 
 	req, _ = http.NewRequest(http.MethodGet, from.Hostname(), nil)

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/lucasmenendez/gop2p/pkg/peer"
 )
@@ -75,7 +76,7 @@ func (msg *Message) String() string {
 // data as request body, then return it if everthing was ok, unless returns an
 // error.
 func (msg *Message) GetRequest(uri string) (*http.Request, error) {
-	if msg.From == nil || msg.From.Address == "" || msg.From.Port == "" {
+	if msg.From == nil || msg.From.Address == "" || msg.From.Port == 0 {
 		return nil, errors.New("current message have not peer associated")
 	}
 
@@ -100,7 +101,7 @@ func (msg *Message) GetRequest(uri string) (*http.Request, error) {
 
 	// Set the message peer information as request headers.
 	request.Header.Add(addressHeader, msg.From.Address)
-	request.Header.Add(portHeader, msg.From.Port)
+	request.Header.Add(portHeader, fmt.Sprint(msg.From.Port))
 	return request, nil
 }
 
@@ -120,8 +121,11 @@ func (msg *Message) FromRequest(req *http.Request) *Message {
 	msg.From = &peer.Peer{}
 	if msg.From.Address = req.Header.Get(addressHeader); msg.From.Address == "" {
 		return nil
-	} else if msg.From.Port = req.Header.Get(portHeader); msg.From.Port == "" {
-		return nil
+	} else if portValue := req.Header.Get(portHeader); portValue != "" {
+		var err error
+		if msg.From.Port, err = strconv.Atoi(portValue); err != nil {
+			return nil
+		}
 	}
 
 	// If the message type is PlainMessage, read the request body as message

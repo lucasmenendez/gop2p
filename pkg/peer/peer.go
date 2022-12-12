@@ -10,33 +10,36 @@ import (
 )
 
 // baseHostname contains node address template
-const baseHostname string = "http://%s:%s"
+const baseHostname string = "http://%s:%d"
 
 // baseString contains node address template
-const baseString string = "%s:%s"
+const baseString string = "%s:%d"
 
 // Peer struct contains peer address and port, information that identifies any
 // node and allows to others to communicate with it.
 type Peer struct {
-	Port    string `json:"port"`
+	Port    int    `json:"port"`
 	Address string `json:"address"`
 }
 
 // New function creates a peer with the provided address and port as argument
 // and returns it.
 func New(address string, port int) *Peer {
+	if address == "" || port < 1 || port > 65535 {
+		return nil
+	}
+
 	return &Peer{
 		Address: address,
-		Port:    fmt.Sprint(port),
+		Port:    port,
 	}
 }
 
 // Me function creates and returns a new peer with the current host address and
 // the port provided as input.
 func Me(port int) (me *Peer) {
-	me = &Peer{
-		Address: "localhost",
-		Port:    fmt.Sprint(port),
+	if me = New("localhost", port); me == nil {
+		return
 	}
 
 	var addresses, err = net.InterfaceAddrs()
