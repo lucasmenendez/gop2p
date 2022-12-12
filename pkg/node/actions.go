@@ -46,7 +46,7 @@ func (node *Node) connect(entryPoint *peer.Peer) {
 	}
 
 	// Parsing the received list
-	var receivedMembers = peer.EmptyMembers()
+	var receivedMembers = peer.NewMembers()
 	if receivedMembers, err = receivedMembers.FromJSON(body); err != nil {
 		node.Error <- ParseErr("error parsing incoming member list", err, msg)
 		return
@@ -78,7 +78,7 @@ func (node *Node) disconnect() {
 	node.broadcast(msg)
 
 	// Clean current member list
-	node.Members = peer.EmptyMembers()
+	node.Members = peer.NewMembers()
 	node.setConnected(false)
 }
 

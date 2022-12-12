@@ -4,8 +4,8 @@ on:
     branches:
       - main
       - dev
-      - 'feature/**'
-      - 'bug/**'
+      - "feature/*"
+      - "bug/*"
 jobs:
   test:
     runs-on: ubuntu-latest

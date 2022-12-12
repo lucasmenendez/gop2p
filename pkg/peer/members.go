@@ -13,8 +13,14 @@ type Members struct {
 	mutex *sync.Mutex
 }
 
-// EmptyMembers function intializes a new Members struct and return it.
-func EmptyMembers() *Members {
+func panicIfNotInitialized(members *Members) {
+	if members.mutex == nil || members.peers == nil {
+		panic("current Members struct instance not initialized, use NewMembers() function")
+	}
+}
+
+// NewMembers function intializes a new Members struct and return it.
+func NewMembers() *Members {
 	return &Members{
 		peers: []*Peer{},
 		mutex: &sync.Mutex{},
@@ -24,6 +30,8 @@ func EmptyMembers() *Members {
 // Peers function returns a copy of the list of peers safely ot the current
 // members, using the mutex associated to it.
 func (members *Members) Peers() []*Peer {
+	panicIfNotInitialized(members)
+
 	members.mutex.Lock()
 	defer members.mutex.Unlock()
 
@@ -35,6 +43,8 @@ func (members *Members) Peers() []*Peer {
 // Len function returns the number of peers that current members contains
 // safely (using the current members mutex).
 func (members *Members) Len() int {
+	panicIfNotInitialized(members)
+
 	members.mutex.Lock()
 	defer members.mutex.Unlock()
 	return len(members.peers)
@@ -45,6 +55,8 @@ func (members *Members) Len() int {
 // it append safely the provided peer to the current list and returns the
 // modified current members, using its own mutex.
 func (members *Members) Append(peer *Peer) *Members {
+	panicIfNotInitialized(members)
+
 	members.mutex.Lock()
 	defer members.mutex.Unlock()
 
@@ -65,6 +77,8 @@ func (members *Members) Append(peer *Peer) *Members {
 
 // Delete function removes the provided peer from the current members safely.
 func (members *Members) Delete(peer *Peer) *Members {
+	panicIfNotInitialized(members)
+
 	members.mutex.Lock()
 	defer members.mutex.Unlock()
 
@@ -81,6 +95,8 @@ func (members *Members) Delete(peer *Peer) *Members {
 // Contains function checks if the provided peer is registered into the current
 // members peer list safely.
 func (members *Members) Contains(peer *Peer) bool {
+	panicIfNotInitialized(members)
+
 	members.mutex.Lock()
 	defer members.mutex.Unlock()
 
@@ -97,6 +113,8 @@ func (members *Members) Contains(peer *Peer) bool {
 // format and returns it as slice of bytes. If something was wrong, returns an
 // error.
 func (members *Members) ToJSON() ([]byte, error) {
+	panicIfNotInitialized(members)
+
 	members.mutex.Lock()
 	defer members.mutex.Unlock()
 
@@ -107,6 +125,8 @@ func (members *Members) ToJSON() ([]byte, error) {
 // FromJSON function parses the provided input as peer list and sets it to the
 // current members peer list safely.
 func (members *Members) FromJSON(input []byte) (*Members, error) {
+	panicIfNotInitialized(members)
+
 	var peers = []*Peer{}
 	if err := json.Unmarshal(input, &peers); err != nil {
 		return nil, err

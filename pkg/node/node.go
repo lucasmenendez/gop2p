@@ -39,7 +39,7 @@ type Node struct {
 func New(self *peer.Peer) (n *Node) {
 	return &Node{
 		Self:    self,
-		Members: peer.EmptyMembers(),
+		Members: peer.NewMembers(),
 		Inbox:   make(chan *message.Message),
 		Error:   make(chan error),
 		Outbox:  make(chan *message.Message),
