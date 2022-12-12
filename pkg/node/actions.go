@@ -54,7 +54,9 @@ func (node *Node) connect(entryPoint *peer.Peer) {
 
 	// Update current members
 	for _, receivedPeer := range receivedMembers.Peers() {
-		node.Members.Append(receivedPeer)
+		if !node.Self.Equal(receivedPeer) {
+			node.Members.Append(receivedPeer)
+		}
 	}
 
 	// Init Leave channel, this channel remain opened while the node is

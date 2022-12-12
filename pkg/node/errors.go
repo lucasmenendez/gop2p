@@ -9,6 +9,7 @@ import (
 const (
 	CONNECTION_ERR = iota
 	PARSING_ERR    = iota
+	INTERNAL_ERR   = iota
 )
 
 type NodeErr struct {
@@ -35,7 +36,7 @@ func (err *NodeErr) Error() string {
 		text = fmt.Sprintf("%s: %v", text, err.Trace)
 	}
 
-	return fmt.Sprintf("%s: %s\n", tag, text)
+	return fmt.Sprintf("%s: %s", tag, text)
 }
 
 func ConnErr(text string, err error, msg *message.Message) *NodeErr {
@@ -47,5 +48,5 @@ func ParseErr(text string, err error, msg *message.Message) *NodeErr {
 }
 
 func InternalErr(text string, err error, msg *message.Message) *NodeErr {
-	return &NodeErr{PARSING_ERR, text, err, msg}
+	return &NodeErr{INTERNAL_ERR, text, err, msg}
 }

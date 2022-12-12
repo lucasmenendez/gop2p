@@ -51,9 +51,7 @@ func handlePrompt(client *node.Node, entryPoint *peer.Peer) {
 				client.Connect <- entryPoint
 			}
 		case "disconnect":
-			if client.IsConnected() {
-				close(client.Leave)
-			}
+			close(client.Leave)
 		case "exit":
 			client.Stop()
 			return

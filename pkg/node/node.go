@@ -75,12 +75,18 @@ func (node *Node) Start() {
 			case msg := <-node.Outbox:
 				if node.IsConnected() {
 					go node.broadcast(msg)
+				} else {
+					node.Error <- ConnErr("node not connected", nil, nil)
 				}
 			case <-node.Leave:
 				if node.IsConnected() {
 					node.disconnect()
-					node.Leave = make(chan struct{})
+				} else {
+					node.Error <- ConnErr("node not connected", nil, nil)
 				}
+
+				// Reinitialize the channel when be closed
+				node.Leave = make(chan struct{})
 			}
 		}
 	}()
