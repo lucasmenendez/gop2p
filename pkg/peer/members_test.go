@@ -112,7 +112,8 @@ func TestMembersContains(t *testing.T) {
 
 func TestMembersToJSON(t *testing.T) {
 	var examples = []*Peer{Me(5000), Me(5001), Me(5002)}
-	var expected = []byte("[{\"port\":\"5000\",\"address\":\"localhost\"}]")
+	var address = examples[0].Address
+	var expected = []byte("[{\"port\":\"5000\",\"address\":\"" + address + "\"}]")
 	var members = NewMembers()
 	members.Append(examples[0])
 
@@ -126,7 +127,7 @@ func TestMembersToJSON(t *testing.T) {
 		members.Append(example)
 	}
 
-	expected = []byte("[{\"port\":\"5000\",\"address\":\"localhost\"},{\"port\":\"5001\",\"address\":\"localhost\"},{\"port\":\"5002\",\"address\":\"localhost\"}]")
+	expected = []byte("[{\"port\":\"5000\",\"address\":\"" + address + "\"},{\"port\":\"5001\",\"address\":\"" + address + "\"},{\"port\":\"5002\",\"address\":\"" + address + "\"}]")
 	if result, err := members.ToJSON(); err != nil {
 		t.Errorf("expected nil, got %v", err)
 	} else if !reflect.DeepEqual(expected, result) {
@@ -135,8 +136,9 @@ func TestMembersToJSON(t *testing.T) {
 }
 
 func TestMembersFromJSON(t *testing.T) {
-	var example = []byte("[{\"port\":\"5000\",\"address\":\"localhost\"}]")
 	var examples = []*Peer{Me(5000), Me(5001), Me(5002)}
+	var address = examples[0].Address
+	var example = []byte("[{\"port\":\"5000\",\"address\":\"" + address + "\"}]")
 	var expected = NewMembers()
 	expected.Append(examples[0])
 
@@ -150,7 +152,7 @@ func TestMembersFromJSON(t *testing.T) {
 		expected.Append(p)
 	}
 
-	example = []byte("[{\"port\":\"5000\",\"address\":\"localhost\"},{\"port\":\"5001\",\"address\":\"localhost\"},{\"port\":\"5002\",\"address\":\"localhost\"}]")
+	example = []byte("[{\"port\":\"5000\",\"address\":\"" + address + "\"},{\"port\":\"5001\",\"address\":\"" + address + "\"},{\"port\":\"5002\",\"address\":\"" + address + "\"}]")
 	if result, err := expected.FromJSON(example); err != nil {
 		t.Errorf("expected nil, got %v", err)
 	} else if !reflect.DeepEqual(expected.peers, result.peers) {
