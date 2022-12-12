@@ -13,6 +13,9 @@ type Members struct {
 	mutex *sync.Mutex
 }
 
+// panicIfNotInitialized function calls panic if the provided Members is not
+// initialized with a empty slice of *Peer's and an initialized mutex to protect
+// the access to it.
 func panicIfNotInitialized(members *Members) {
 	if members.mutex == nil || members.peers == nil {
 		panic("current Members struct instance not initialized, use NewMembers() function")
