@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/lucasmenendez/gop2p/peer"
+	"github.com/lucasmenendez/gop2p/pkg/peer"
 )
 
 func TestMessageSetType(t *testing.T) {

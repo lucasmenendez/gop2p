@@ -3,7 +3,7 @@ package node
 import (
 	"net/http"
 
-	"github.com/lucasmenendez/gop2p/message"
+	"github.com/lucasmenendez/gop2p/pkg/message"
 )
 
 // startListening function creates a HTTP request multiplexer to assing the root

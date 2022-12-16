@@ -8,9 +8,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/lucasmenendez/gop2p/message"
-	"github.com/lucasmenendez/gop2p/node"
-	"github.com/lucasmenendez/gop2p/peer"
+	"github.com/lucasmenendez/gop2p/pkg/message"
+	"github.com/lucasmenendez/gop2p/pkg/node"
+	"github.com/lucasmenendez/gop2p/pkg/peer"
 )
 
 func getOptions() (int, int) {

@@ -3,7 +3,7 @@ package node
 import (
 	"fmt"
 
-	"github.com/lucasmenendez/gop2p/message"
+	"github.com/lucasmenendez/gop2p/pkg/message"
 )
 
 const (
