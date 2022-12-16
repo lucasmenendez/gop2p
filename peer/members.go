@@ -63,7 +63,7 @@ func (members *Members) Append(peer *Peer) *Members {
 	members.mutex.Lock()
 	defer members.mutex.Unlock()
 
-	var included = false
+	included := false
 	for _, member := range members.peers {
 		if member.Equal(peer) {
 			included = true
@@ -120,9 +120,7 @@ func (members *Members) ToJSON() ([]byte, error) {
 
 	members.mutex.Lock()
 	defer members.mutex.Unlock()
-
-	var res, err = json.Marshal(members.peers)
-	return res, err
+	return json.Marshal(members.peers)
 }
 
 // FromJSON function parses the provided input as peer list and sets it to the
@@ -130,7 +128,7 @@ func (members *Members) ToJSON() ([]byte, error) {
 func (members *Members) FromJSON(input []byte) (*Members, error) {
 	panicIfNotInitialized(members)
 
-	var peers = []*Peer{}
+	peers := []*Peer{}
 	if err := json.Unmarshal(input, &peers); err != nil {
 		return nil, err
 	}

@@ -42,7 +42,7 @@ func Me(port int) (me *Peer) {
 		return
 	}
 
-	var addresses, err = net.InterfaceAddrs()
+	addresses, err := net.InterfaceAddrs()
 	if err != nil {
 		return
 	}

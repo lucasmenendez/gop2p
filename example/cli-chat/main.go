@@ -7,18 +7,19 @@ import (
 	"log"
 	"os"
 
-	"github.com/lucasmenendez/gop2p"
-	"github.com/lucasmenendez/gop2p/pkg/message"
-	"github.com/lucasmenendez/gop2p/pkg/node"
-	"github.com/lucasmenendez/gop2p/pkg/peer"
+	"github.com/lucasmenendez/gop2p/message"
+	"github.com/lucasmenendez/gop2p/node"
+	"github.com/lucasmenendez/gop2p/peer"
 )
 
 func getOptions() (int, int) {
-	var selfPortFlag = flag.Int("self", 5000, "self node port")
-	var entryPortFlag = flag.Int("entry", 5000, "entrypoint node port")
+	var (
+		selfPortFlag  = flag.Int("self", 5000, "self node port")
+		entryPortFlag = flag.Int("entry", 5000, "entrypoint node port")
+	)
 	flag.Parse()
 
-	var selfPort, entryPort = *selfPortFlag, *entryPortFlag
+	selfPort, entryPort := *selfPortFlag, *entryPortFlag
 	if selfPort == entryPort {
 		entryPort = -1
 	}
@@ -28,7 +29,7 @@ func getOptions() (int, int) {
 
 func printInputs(client *node.Node) {
 	// Create a logger and pass as argument to the goroutine
-	var logger = log.New(os.Stdout, "", 0)
+	logger := log.New(os.Stdout, "", 0)
 	go func(logger *log.Logger) {
 		for {
 			select {
@@ -45,7 +46,7 @@ func printInputs(client *node.Node) {
 
 func handlePrompt(client *node.Node, entryPoint *peer.Peer) {
 	// Start reading stdin in a while-true loop
-	var reader = bufio.NewReader(os.Stdin)
+	reader := bufio.NewReader(os.Stdin)
 	for {
 		// Read every line writted by the user and clean the text
 		prompt, _ := reader.ReadBytes('\n')
@@ -65,7 +66,7 @@ func handlePrompt(client *node.Node, entryPoint *peer.Peer) {
 			client.Stop()
 			return
 		default:
-			var msg = new(message.Message).SetFrom(client.Self).SetData(prompt)
+			msg := new(message.Message).SetFrom(client.Self).SetData(prompt)
 			client.Outbox <- msg
 		}
 	}
@@ -77,12 +78,11 @@ func main() {
 
 	// If entry point node port is not setted, the default value will be 0,
 	// which is not a valid as port value so peer.Me function will be return nil
-	var entryPoint = peer.Me(entryPort)
+	entryPoint := peer.Me(entryPort)
 
 	// Start current node on provided port
-	client := gop2p.StartLocalNode(selfPort)
-	// Keep running
-	defer client.Wait()
+	selfPeer := peer.Me(selfPort)
+	client := node.New(selfPeer)
 
 	// Launch a goroutine to handle new messages and errors
 	printInputs(client)

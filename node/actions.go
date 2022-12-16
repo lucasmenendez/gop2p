@@ -4,8 +4,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/lucasmenendez/gop2p/pkg/message"
-	"github.com/lucasmenendez/gop2p/pkg/peer"
+	"github.com/lucasmenendez/gop2p/message"
+	"github.com/lucasmenendez/gop2p/peer"
 )
 
 // setConnected function updates the current node status safely using a mutex.
@@ -91,12 +91,12 @@ func (node *Node) broadcast(msg *message.Message) {
 	// Iterate over each member encoding as a request and performing it with
 	// the provided Message.
 	for _, peer := range node.Members.Peers() {
-		var req, err = msg.GetRequest(peer.Hostname())
+		req, err := msg.GetRequest(peer.Hostname())
 		if err != nil {
 			node.Error <- ParseErr("error decoding request to message", err, msg)
 		}
 
-		if _, err = node.client.Do(req); err != nil {
+		if _, err := node.client.Do(req); err != nil {
 			node.Error <- ConnErr("error trying to perform the request", err, msg)
 		}
 	}

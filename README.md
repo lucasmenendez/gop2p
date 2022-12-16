@@ -13,7 +13,7 @@ go get github.com/lucasmenendez/gop2p@latest
 - Also, it is available a simple **example** that implments a CLI Chat [here](example/cli-chat/).
 
 ### How to use it
-The main component to use gop2p is the [`gop2p.Node`](pkg/node/node.go) struct, that contains the required parameters and functions to create or join to the network:
+The main component to use gop2p is the [`gop2p.Node`](node/node.go) struct, that contains the required parameters and functions to create or join to the network:
 
 ```go
     type Node struct {
@@ -43,15 +43,16 @@ package main
 import (
 	"log"
 
-	"github.com/lucasmenendez/gop2p"
-	"github.com/lucasmenendez/gop2p/pkg/message"
-	"github.com/lucasmenendez/gop2p/pkg/peer"
+	"github.com/lucasmenendez/gop2p/node"
+	"github.com/lucasmenendez/gop2p/message"
+	"github.com/lucasmenendez/gop2p/peer"
 )
 
 func main() {
     // Init a new Node
-    node := gop2p.StartLocalNode(5001) // Local Node
-    // [FOR REMOTE CLIENT] node := gop2p.StartNode("0.0.0.0", 5001)
+    self := peer.Me(5001)
+    // [FOR REMOTE CLIENT] self := peer.New("0.0.0.0", 5001)
+    node := node.New(self) // Local Node
     defer node.Wait()
 
     // Connect to a network putting the entrypoint peer into the Node.Connect
@@ -92,8 +93,8 @@ import (
 	"log"
 
 	"github.com/lucasmenendez/gop2p"
-	"github.com/lucasmenendez/gop2p/pkg/message"
-	"github.com/lucasmenendez/gop2p/pkg/peer"
+	"github.com/lucasmenendez/gop2p/message"
+	"github.com/lucasmenendez/gop2p/peer"
 )
 
 func main() {
@@ -126,8 +127,8 @@ import (
 	"log"
 
 	"github.com/lucasmenendez/gop2p"
-	"github.com/lucasmenendez/gop2p/pkg/message"
-	"github.com/lucasmenendez/gop2p/pkg/peer"
+	"github.com/lucasmenendez/gop2p/message"
+	"github.com/lucasmenendez/gop2p/peer"
 )
 
 func main() {

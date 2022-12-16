@@ -3,7 +3,7 @@ package node
 import (
 	"net/http"
 
-	"github.com/lucasmenendez/gop2p/pkg/message"
+	"github.com/lucasmenendez/gop2p/message"
 )
 
 // startListening function creates a HTTP request multiplexer to assing the root
@@ -47,7 +47,7 @@ func (node *Node) handleRequest() func(http.ResponseWriter, *http.Request) {
 
 		// Set default headers and parse current request into a message.
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		var msg = new(message.Message).FromRequest(r)
+		msg := new(message.Message).FromRequest(r)
 
 		// Select the handler based on the current request http.Method, GET
 		// method is for connection requests, POST method for the plain message
@@ -60,7 +60,7 @@ func (node *Node) handleRequest() func(http.ResponseWriter, *http.Request) {
 			// list encoding to JSON.
 
 			// Encode current list of members to a JSON to send it
-			var responseBody, err = node.Members.ToJSON()
+			responseBody, err := node.Members.ToJSON()
 			if err != nil {
 				var errMsg = "error encoding members to JSON"
 				node.Error <- ParseErr(errMsg, err, msg)
@@ -83,7 +83,7 @@ func (node *Node) handleRequest() func(http.ResponseWriter, *http.Request) {
 		case message.DisconnectType:
 			// disconnected function deletes the message peer from the current
 			// network members.
-			node.Members = node.Members.Delete(msg.From)
+			node.Members.Delete(msg.From)
 			if node.Members.Len() == 0 {
 				node.setConnected(false)
 			}

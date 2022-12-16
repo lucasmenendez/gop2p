@@ -1,14 +1,28 @@
 // node package contains the logic to keep listening to incoming messages while
 // cocurrently allows to the user to perform connect, disconnect and broadcast
 // actions.
+// The package implements simple peer-to-peer network node in pure Go. Uses
+// HTTP client and server to communicate over internet to knowed network
+// members. gop2p implements the following functional workflow:
+//  1. Connect to the network: The client gop2p.Node know a entry point of the
+//     desired network (other gop2p.Node that is already connected). The entry
+//     point response with the current network gop2p.Node's and updates its
+//     members gop2p.Node list. The client gop2p.Node broadcast a connection
+//     request to every gop2p.Node received from entry point.
+//  2. Broadcasting a message: The client gop2p.Node prepares and broadcast a
+//     gop2p.Message to every network gop2p.Node.
+//  3. Disconnect from the network: The client gop2p.Node broadcast a
+//     disconnection request to every network gop2p.Node. This gop2p.Node's
+//     updates its current network members list unregistering the client
+//     gop2p.Node.
 package node
 
 import (
 	"net/http"
 	"sync"
 
-	"github.com/lucasmenendez/gop2p/pkg/message"
-	"github.com/lucasmenendez/gop2p/pkg/peer"
+	"github.com/lucasmenendez/gop2p/message"
+	"github.com/lucasmenendez/gop2p/peer"
 )
 
 // Node struct contains the information about the current peer associated to
@@ -37,7 +51,7 @@ type Node struct {
 
 // NewNode function create a Node associated to the peer provided as argument.
 func New(self *peer.Peer) (n *Node) {
-	return &Node{
+	n = &Node{
 		Self:    self,
 		Members: peer.NewMembers(),
 		Inbox:   make(chan *message.Message),
@@ -53,12 +67,15 @@ func New(self *peer.Peer) (n *Node) {
 		client: &http.Client{},
 		server: &http.Server{Addr: self.String()},
 	}
+
+	n.start()
+	return
 }
 
 // Start function starts two goroutines, the first one to handle incoming
 // requests and the second one to handle user actions listening to defined
 // channels.
-func (node *Node) Start() {
+func (node *Node) start() {
 	// Start HTTP server to listen to other network peers requests.
 	go node.startListening()
 

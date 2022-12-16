@@ -7,13 +7,12 @@ package message
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"strconv"
 
-	"github.com/lucasmenendez/gop2p/pkg/peer"
+	"github.com/lucasmenendez/gop2p/peer"
 )
 
 const (
@@ -77,13 +76,13 @@ func (msg *Message) String() string {
 // error.
 func (msg *Message) GetRequest(uri string) (*http.Request, error) {
 	if msg.From == nil || msg.From.Address == "" || msg.From.Port == 0 {
-		return nil, errors.New("current message have not peer associated")
+		return nil, fmt.Errorf("current message have not peer associated")
 	}
 
 	// Set the correct method based on message type. The connection message
 	// will be "GET" method, the disconnection message will be the "DELETE"
 	// method and the plain message will be "POST".
-	var method = http.MethodPost
+	method := http.MethodPost
 	if msg.Type == ConnectType {
 		method = http.MethodGet
 	} else if msg.Type == DisconnectType {
@@ -92,11 +91,10 @@ func (msg *Message) GetRequest(uri string) (*http.Request, error) {
 
 	// Create a buffer with the message data and creates the request with the
 	// defined method.
-	var body *bytes.Buffer = bytes.NewBuffer(msg.Data)
-	var request, err = http.NewRequest(method, uri, body)
+	body := bytes.NewBuffer(msg.Data)
+	request, err := http.NewRequest(method, uri, body)
 	if err != nil {
-		var msg = fmt.Sprintf("error generating the request %v", err)
-		return nil, errors.New(msg)
+		return nil, fmt.Errorf("error generating the request %v", err)
 	}
 
 	// Set the message peer information as request headers.
