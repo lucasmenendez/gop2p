@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 
@@ -44,8 +45,25 @@ func printInputs(client *node.Node) {
 	}(logger)
 }
 
-func handlePrompt(client *node.Node, entryPoint *peer.Peer) {
-	// Start reading stdin in a while-true loop
+func main() {
+	// Get parsed current node and entry point node ports from cmd flags
+	selfPort, entryPort := getOptions()
+
+	// If entry point node port is not setted, the default value will be 0,
+	// which is not a valid as port value so peer.Me function will be return nil
+	entryPoint, err := peer.Me(entryPort, true)
+	fmt.Println(err)
+
+	// Start current node on provided port
+	selfPeer, _ := peer.Me(selfPort, false)
+	client := node.New(selfPeer)
+	client.Start()
+
+	// Launch a goroutine to handle new messages and errors
+	printInputs(client)
+
+	// Listen for user commands ('connect', 'disconnect', 'exit') and messages.
+	// To do that, start reading stdin in a while-true loop.
 	reader := bufio.NewReader(os.Stdin)
 	for {
 		// Read every line writted by the user and clean the text
@@ -70,22 +88,4 @@ func handlePrompt(client *node.Node, entryPoint *peer.Peer) {
 			client.Outbox <- msg
 		}
 	}
-}
-
-func main() {
-	// Get parsed current node and entry point node ports from cmd flags
-	selfPort, entryPort := getOptions()
-
-	// If entry point node port is not setted, the default value will be 0,
-	// which is not a valid as port value so peer.Me function will be return nil
-	entryPoint := peer.Me(entryPort)
-
-	// Start current node on provided port
-	selfPeer := peer.Me(selfPort)
-	client := node.New(selfPeer)
-
-	// Launch a goroutine to handle new messages and errors
-	printInputs(client)
-	// Listen for user commands ('connect', 'disconnect', 'exit') and messages
-	handlePrompt(client, entryPoint)
 }

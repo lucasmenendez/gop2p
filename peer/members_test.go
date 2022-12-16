@@ -1,20 +1,34 @@
 package peer
 
 import (
-	"reflect"
-	"sync"
 	"testing"
+
+	qt "github.com/frankban/quicktest"
 )
 
+func getExamples(n int) []*Peer {
+	examples := []*Peer{}
+	if n <= 0 {
+		return examples
+	}
+
+	for i := 0; i < n; i++ {
+		example, _ := Me(5000+i, false)
+		examples = append(examples, example)
+	}
+
+	return examples
+}
+
 func TestNotInitializedMembers(t *testing.T) {
+	c := qt.New(t)
+
 	defer func() {
-		if except := recover(); except == nil {
-			t.Error("expected panic, got error")
-		}
+		c.Assert(recover(), qt.IsNotNil)
 	}()
 
 	// not panic
-	var result = NewMembers()
+	result := NewMembers()
 	result.Len()
 
 	// panic
@@ -23,139 +37,129 @@ func TestNotInitializedMembers(t *testing.T) {
 }
 
 func TestNewMembers(t *testing.T) {
-	var expected, result = &Members{[]*Peer{}, &sync.Mutex{}}, NewMembers()
-	if !reflect.DeepEqual(expected, result) {
-		t.Errorf("expected %v, got %v", expected, result)
-	}
+	c := qt.New(t)
+
+	result := NewMembers()
+	c.Assert(result.peers, qt.DeepEquals, []*Peer{})
+	c.Assert(result.mutex, qt.IsNotNil)
 }
 
 func TestMembersPeers(t *testing.T) {
-	var members = NewMembers()
-	if result := members.Peers(); len(result) != 0 {
-		t.Errorf("expected 0, got %d", len(result))
-	}
+	c := qt.New(t)
 
-	var expected = []*Peer{Me(5000), Me(5001), Me(5002)}
+	members := NewMembers()
+	c.Assert(members.Peers(), qt.HasLen, 0)
+
+	expected := getExamples(3)
 	for _, member := range expected {
 		members.Append(member)
 	}
 
-	if !reflect.DeepEqual(expected, members.Peers()) {
-		t.Errorf("expected %v, got %v", expected, members.Peers())
-	}
+	c.Assert(expected, qt.ContentEquals, members.Peers())
 }
 
 func TestMembersLen(t *testing.T) {
-	var result = NewMembers()
+	c := qt.New(t)
+
+	result := NewMembers()
 	if result.Len() != 0 {
 		t.Errorf("expected 0, got %d", result.Len())
 	}
 
-	var expected = []*Peer{Me(5000), Me(5001), Me(5002)}
+	expected := getExamples(3)
 	for _, member := range expected {
 		result.Append(member)
 	}
+	c.Assert(expected, qt.HasLen, result.Len())
 
-	if len(expected) != result.Len() {
-		t.Errorf("expected %d, got %d", len(expected), result.Len())
-	}
-
-	var needle = expected[0]
-	result.Delete(needle)
-	if expected = expected[1:]; len(expected) != result.Len() {
-		t.Errorf("expected %d, got %d", len(expected), result.Len())
-	}
+	result.Delete(expected[0])
+	expected = expected[1:]
+	c.Assert(expected, qt.HasLen, result.Len())
 }
 
 func TestMembersAppend(t *testing.T) {
-	var result = NewMembers()
-	var expected = []*Peer{Me(5000), Me(5001), Me(5002)}
+	c := qt.New(t)
+
+	result := NewMembers()
+	expected := getExamples(3)
 	for i, member := range expected {
 		result.Append(member)
-
-		if !reflect.DeepEqual(member, result.peers[i]) {
-			t.Errorf("expected %v at index %d, got %v", member, i, result.peers[i])
-		}
+		c.Assert(member, qt.ContentEquals, result.peers[i])
 	}
 
-	if len(expected) != result.Len() {
-		t.Errorf("expected %d, got %d", len(expected), result.Len())
-	}
+	c.Assert(expected, qt.HasLen, result.Len())
 }
 
 func TestMembersDelete(t *testing.T) {
-	var result = NewMembers()
-	var expected = []*Peer{Me(5000), Me(5001), Me(5002)}
+	c := qt.New(t)
+
+	result := NewMembers()
+	expected := getExamples(3)
 	for _, member := range expected {
 		result.Append(member)
 	}
 
 	result.Delete(expected[0])
-	if expected = expected[1:]; !reflect.DeepEqual(expected, result.peers) {
-		t.Errorf("expected %v, got %v", expected, result.peers)
-	}
+	expected = expected[1:]
+	c.Assert(expected, qt.DeepEquals, result.peers)
 }
 
 func TestMembersContains(t *testing.T) {
-	var result = NewMembers()
-	var expected = []*Peer{Me(5000), Me(5001), Me(5002)}
+	c := qt.New(t)
+
+	result := NewMembers()
+	expected := getExamples(3)
 	for _, member := range expected {
 		result.Append(member)
 	}
 
-	if needle := expected[0]; !result.Contains(needle) {
-		t.Error("expected true, got false")
-	} else if needle = Me(5003); result.Contains(needle) {
-		t.Error("expected false, got true")
-	}
+	c.Assert(result.Contains(expected[0]), qt.IsTrue)
+	needle, _ := Me(5003, false)
+	c.Assert(result.Contains(needle), qt.IsFalse)
 }
 
 func TestMembersToJSON(t *testing.T) {
-	var examples = []*Peer{Me(5000), Me(5001), Me(5002)}
-	var address = examples[0].Address
-	var expected = []byte("[{\"port\":5000,\"address\":\"" + address + "\"}]")
-	var members = NewMembers()
+	c := qt.New(t)
+
+	examples := getExamples(3)
+	address := examples[0].Address
+	expected := []byte("[{\"port\":5000,\"address\":\"" + address + "\"}]")
+	members := NewMembers()
 	members.Append(examples[0])
 
-	if result, err := members.ToJSON(); err != nil {
-		t.Errorf("expected nil, got %v", err)
-	} else if !reflect.DeepEqual(expected, result) {
-		t.Errorf("expected %s, got %s", expected, result)
-	}
+	result, err := members.ToJSON()
+	c.Assert(err, qt.IsNil)
+	c.Assert(expected, qt.DeepEquals, result)
 
 	for _, example := range examples[1:] {
 		members.Append(example)
 	}
 
 	expected = []byte("[{\"port\":5000,\"address\":\"" + address + "\"},{\"port\":5001,\"address\":\"" + address + "\"},{\"port\":5002,\"address\":\"" + address + "\"}]")
-	if result, err := members.ToJSON(); err != nil {
-		t.Errorf("expected nil, got %v", err)
-	} else if !reflect.DeepEqual(expected, result) {
-		t.Errorf("expected %s, got %s", expected, result)
-	}
+	result, err = members.ToJSON()
+	c.Assert(err, qt.IsNil)
+	c.Assert(expected, qt.DeepEquals, result)
 }
 
 func TestMembersFromJSON(t *testing.T) {
-	var examples = []*Peer{Me(5000), Me(5001), Me(5002)}
-	var address = examples[0].Address
-	var example = []byte("[{\"port\":5000,\"address\":\"" + address + "\"}]")
-	var expected = NewMembers()
+	c := qt.New(t)
+
+	examples := getExamples(3)
+	address := examples[0].Address
+	example := []byte("[{\"port\":5000,\"address\":\"" + address + "\"}]")
+	expected := NewMembers()
 	expected.Append(examples[0])
 
-	if result, err := expected.FromJSON(example); err != nil {
-		t.Errorf("expected nil, got %v", err)
-	} else if !reflect.DeepEqual(expected.peers, result.peers) {
-		t.Errorf("expected %v, got %v", expected.peers, result.peers)
-	}
+	result, err := expected.FromJSON(example)
+	c.Assert(err, qt.IsNil)
+	c.Assert(expected.peers, qt.DeepEquals, result.peers)
 
 	for _, p := range examples[1:] {
 		expected.Append(p)
 	}
 
 	example = []byte("[{\"port\":5000,\"address\":\"" + address + "\"},{\"port\":5001,\"address\":\"" + address + "\"},{\"port\":5002,\"address\":\"" + address + "\"}]")
-	if result, err := expected.FromJSON(example); err != nil {
-		t.Errorf("expected nil, got %v", err)
-	} else if !reflect.DeepEqual(expected.peers, result.peers) {
-		t.Errorf("expected %v, got %v", expected.peers, result.peers)
-	}
+	result, err = expected.FromJSON(example)
+	c.Assert(err, qt.IsNil)
+	c.Assert(expected.peers, qt.DeepEquals, result.peers)
 }

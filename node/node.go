@@ -50,8 +50,8 @@ type Node struct {
 }
 
 // NewNode function create a Node associated to the peer provided as argument.
-func New(self *peer.Peer) (n *Node) {
-	n = &Node{
+func New(self *peer.Peer) *Node {
+	return &Node{
 		Self:    self,
 		Members: peer.NewMembers(),
 		Inbox:   make(chan *message.Message),
@@ -67,15 +67,12 @@ func New(self *peer.Peer) (n *Node) {
 		client: &http.Client{},
 		server: &http.Server{Addr: self.String()},
 	}
-
-	n.start()
-	return
 }
 
 // Start function starts two goroutines, the first one to handle incoming
 // requests and the second one to handle user actions listening to defined
 // channels.
-func (node *Node) start() {
+func (node *Node) Start() {
 	// Start HTTP server to listen to other network peers requests.
 	go node.startListening()
 

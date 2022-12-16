@@ -13,7 +13,7 @@ go get github.com/lucasmenendez/gop2p@latest
 - Also, it is available a simple **example** that implments a CLI Chat [here](example/cli-chat/).
 
 ### How to use it
-The main component to use gop2p is the [`gop2p.Node`](node/node.go) struct, that contains the required parameters and functions to create or join to the network:
+The main component to use gop2p is the [`node.Node`](noe/node.go) struct, that contains the required parameters and functions to create or join to the network:
 
 ```go
     type Node struct {
@@ -31,8 +31,9 @@ The main component to use gop2p is the [`gop2p.Node`](node/node.go) struct, that
     }
 ```
 
-#### 1. Connect to the network
-The client `Node` know a entry point of the desired network (other `Node` that is already connected). The entry point response with the current network `Node`'s and updates its members `Node` list. The client `Node` broadcast a connection request to every `Node` received from entry point.
+#### 1. Start a `node.Node
+
+To start a new `node.Node` ad be able to send and receive messages (`gop2p.Message`) is required to instance a new `gop2p.Peer` with the network information (host IP address and port to listen requests).
 
 <details>
 <summary style="padding-left: 5vh">Show a code example</summary>
@@ -49,27 +50,63 @@ import (
 )
 
 func main() {
-    // Init a new Node
-    self := peer.Me(5001)
-    // [FOR REMOTE CLIENT] self := peer.New("0.0.0.0", 5001)
-    node := node.New(self) // Local Node
-    defer node.Wait()
+    // Instance a new peer that identifies the current node
+    self, _ := peer.Me(5001, false)
+    // [FOR REMOTE CLIENT] self, _ := peer.Me(5001, true)
 
-    // Connect to a network putting the entrypoint peer into the Node.Connect
-    // channel
-    node.Connect <- peer.Me(5000) // Local entry point Node
-    // [REMOTE ENTRYPOINT] node.Connect <- peer.New("192.68.1.43", 5000)
+    // Create a new node with the self peer defined
+    client := node.New(self)
+
+    // Start listening to be able to send and receive messages
+    client.Start()
+
+    // To prevent that the current routine ends (if it is necessary) keep 
+    // it waiting
+    defer client.Wait()
+
+    //...
+}
+
+```
+</details>
+
+#### 2. Connect to a network and listen for messages or errors
+To connect to a network you must know the `peer.Peer` information of an entrypoint. Use `node.Node.Connect` channel to connect to it, the `node.Node.Inbo` channel to listen for messages and the `node.Node.Error` channel to listen for errors.
+
+<details>
+<summary style="padding-left: 5vh">Show a code example</summary>
+
+```go
+package main
+
+import (
+	"log"
+
+	"github.com/lucasmenendez/gop2p/node"
+	"github.com/lucasmenendez/gop2p/message"
+	"github.com/lucasmenendez/gop2p/peer"
+)
+
+func main() {
+    // ...
+
+    // Create an entry point peer
+    entryPoint, _ := peer.Me(5000, false)
+    // [REMOTE ENTRYPOINT] entryPoint, _ := peer.New("192.68.1.43", 5000)
+
+    // Connect to the defined entry point peer usign the Connect channel
+    client.Connect <- entryPoint
 
     // Print incoming messages and errors. Every incoming message is populated
     // through Node.Inbox, and every error channel that occurs trough Node.Error
     // channel
-    var logger = log.New(os.Stdout, "", 0)
+    logger := log.New(os.Stdout, "", 0)
     go func() {
         for {
             select {
-            case msg := <-node.Inbox:
+            case msg := <-client.Inbox:
                 logger.Printf("[%s] -> %s\n", msg.From.String(), string(msg.Data))
-            case err := <-node.Error:
+            case err := <-client.Error:
                 logger.Fatalln(err)
             }
         }
@@ -80,8 +117,8 @@ func main() {
 ```
 </details>
 
-#### 2. Broadcasting 
-The client `Node` prepares and broadcast a `gop2p.Message` to every network `Node`.
+#### 3. Send a message to the network 
+To broadcast data to the network it must be wrapped using a `message.Message` and the result must be sended using the `node.Outbox` channel.
 
 <details>
 <summary style="padding-left: 5vh">Show a code example</summary>
@@ -92,7 +129,7 @@ package main
 import (
 	"log"
 
-	"github.com/lucasmenendez/gop2p"
+	"github.com/lucasmenendez/gop2p/node"
 	"github.com/lucasmenendez/gop2p/message"
 	"github.com/lucasmenendez/gop2p/peer"
 )
@@ -101,21 +138,21 @@ func main() {
     // ...
 
     // Create a []byte message
-    var data = []byte("Hello network!")
+    data := []byte("Hello network!")
     // Create a message with Node.Self information as sender and the created 
     // data
-    var msg = new(message.Message).SetFrom(node.Self).SetData(data)
+    msg := new(message.Message).SetFrom(client.Self).SetData(data)
     // Broadcast the message to the network putting it into the Node.Outbox 
     // channel
-    node.Outbox <- msg
+    client.Outbox <- msg
 
     // ...
 }
 ```
 </details>
 
-#### 3. Disconnect 
-The client `Node` broadcast a disconnection request to every network `Node`. This `Node`'s updates its current network members list unregistering the client `Node`.
+#### 4. Disconnect from the network 
+To disconnect from the current network (if the client is already connected to one), the `node.Leave` channel must be closed. The client `node.Node` broadcast a disconnection request to every network `peer.Peer`. The `node.Node` associated to every `peer.Peer`, updates its current network member list unregistering the current `peer.Peer`. At this moment, the current `node.Node` could connect to other network in any moment (see [step 2](#2-connect-to-a-network-and-listen-for-messages-or-errors)).
 
 <details>
 <summary style="padding-left: 5vh">Show a code example</summary>
@@ -126,7 +163,7 @@ package main
 import (
 	"log"
 
-	"github.com/lucasmenendez/gop2p"
+	"github.com/lucasmenendez/gop2p/node"
 	"github.com/lucasmenendez/gop2p/message"
 	"github.com/lucasmenendez/gop2p/peer"
 )
@@ -135,7 +172,36 @@ func main() {
     // ...
 
     // Close the Node.Leave channel to disconnect from the network
-    close(node.Leave)
+    close(client.Leave)
+
+    // ...
+}
+```
+
+</details>
+
+#### 5. Stop the `node.Node`
+To stop the current `node.Node` the function `node.Stop` must be executed. This will also disconnect the current `node.Node` from a network, if it is connected. The function close every channel, stops the HTTP server to stop listening for other `peer.Peer`s requests and stop waiting indifinitely.
+
+<details>
+<summary style="padding-left: 5vh">Show a code example</summary>
+
+```go
+package main
+
+import (
+	"log"
+
+	"github.com/lucasmenendez/gop2p/node"
+	"github.com/lucasmenendez/gop2p/message"
+	"github.com/lucasmenendez/gop2p/peer"
+)
+
+func main() {
+    // ...
+
+    // Stop the Node
+    client.Stop()
 }
 ```
 
@@ -151,23 +217,28 @@ participant Client (Node)
 participant Network entrypoint (Node)
 participant Network peers (Node)
 
-Note over Client (Node),Network entrypoint (Node): 1. Connect to the network
-Client (Node) ->> Network entrypoint (Node): Send connection request to knowed Network entrypoint
-Network entrypoint (Node) -->> Network entrypoint (Node): Register Client as new member
-Network entrypoint (Node) -->> Client (Node): Response with the current Node list of the network
-Client (Node) -->> Client (Node): Register all the received Node's
+Note over Client (Node): 1. Start the node
+Client (Node) ->> Client (Node): Create and start the client node
+Note over Client (Node),Network entrypoint (Node): 2. Connect to the network
+Client (Node) ->> Network entrypoint (Node): Send request to known entrypoint (address, port)
+Network entrypoint (Node) -->> Network entrypoint (Node): Register a new member
+Network entrypoint (Node) -->> Client (Node): Response with the current list of network members
+Client (Node) -->> Client (Node): Register all the received members
 Client (Node) ->> Network peers (Node): Send connection request
 Network peers (Node) -->> Network peers (Node): Register Client as new member
 
-Note over Client (Node),Network peers (Node): 2. Broadcasting message
+Note over Client (Node),Network peers (Node): 3. Broadcast message
 Client (Node) -->> Client (Node): Create the message
 Client (Node) ->> Network peers (Node): Broadcast message request to current network Node's
 
 Network peers (Node) -->> Network peers (Node): Handle received Client message
 
-Note over Client (Node),Network peers (Node): 3. Disconnection from the network
+Note over Client (Node),Network peers (Node): 4. Disconnect from the network
 Client (Node) -->> Client (Node): Create the disconnect request
 Client (Node) ->> Network peers (Node): Broadcast disconnect request to current network Node's
 
 Network peers (Node) -->> Network peers (Node): Unregister Client from current Node's network
+
+Note over Client (Node): 5. Stop the node
+Client (Node) ->> Client (Node): Stop the client node
 ```

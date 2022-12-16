@@ -7,6 +7,7 @@ package peer
 import (
 	"fmt"
 	"net"
+	"net/url"
 )
 
 // baseHostname contains node address template
@@ -14,6 +15,12 @@ const baseHostname string = "http://%s:%d"
 
 // baseString contains node address template
 const baseString string = "%s:%d"
+
+// allAddresses contains the wildcard IP as string
+const allAddresses string = "0.0.0.0"
+
+var ErrBadAddress error = fmt.Errorf("bad peer address provided")
+var ErrPortAddress error = fmt.Errorf("bad peer port provided")
 
 // Peer struct contains peer address and port, information that identifies any
 // node and allows to others to communicate with it.
@@ -24,39 +31,49 @@ type Peer struct {
 
 // New function creates a peer with the provided address and port as argument
 // and returns it.
-func New(address string, port int) *Peer {
-	if address == "" || port < 1 || port > 65535 {
-		return nil
+func New(address string, port int) (*Peer, error) {
+	if address == "" {
+		return nil, ErrPortAddress
+	} else if port < 1 || port > 65535 {
+		return nil, ErrPortAddress
 	}
 
-	return &Peer{
+	peer := &Peer{
 		Address: address,
 		Port:    port,
 	}
+
+	if _, err := url.Parse(peer.Hostname()); err != nil {
+		return nil, ErrBadAddress
+	}
+	return peer, nil
 }
 
 // Me function creates and returns a new peer with the current host address and
-// the port provided as input.
-func Me(port int) (me *Peer) {
-	if me = New("localhost", port); me == nil {
-		return
+// the port provided as input. The function also receives a boolean as a second
+// parameter 'remote' that indicates if the peer is a local peer (with local IP
+// or 'localhost' as Addres) or a remote one (with 0.0.0.0 IP as Address)
+func Me(port int, remote bool) (*Peer, error) {
+	if remote {
+		return New(allAddresses, port)
 	}
 
-	addresses, err := net.InterfaceAddrs()
+	me, err := New("localhost", port)
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	for _, address := range addresses {
-		if ip, ok := address.(*net.IPNet); ok && !ip.IP.IsLoopback() {
-			if ip.IP.To4() != nil {
+	if addresses, err := net.InterfaceAddrs(); err != nil {
+		for _, address := range addresses {
+			ip, ok := address.(*net.IPNet)
+			if ok && !ip.IP.IsLoopback() && ip.IP.To4() != nil {
 				me.Address = ip.IP.String()
 				break
 			}
 		}
 	}
 
-	return
+	return me, nil
 }
 
 // Equal function returns if the current peer is the same that the provided one.

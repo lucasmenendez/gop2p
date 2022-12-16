@@ -3,85 +3,82 @@ package message
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"net/http"
-	"reflect"
 	"testing"
 
+	qt "github.com/frankban/quicktest"
 	"github.com/lucasmenendez/gop2p/peer"
 )
 
 func TestMessageSetType(t *testing.T) {
-	var msg = new(Message)
+	c := qt.New(t)
+
+	msg := new(Message)
 	msg.SetType(ConnectType)
-	if msg.Type != ConnectType {
-		t.Errorf("expected message with ConnectType, got with other type (%d)", msg.Type)
-	}
+	c.Assert(msg.Type, qt.Equals, ConnectType)
 
 	msg.SetType(DisconnectType)
-	if msg.Type != DisconnectType {
-		t.Errorf("expected message with DisconnectType, got with other type (%d)", msg.Type)
-	}
+	c.Assert(msg.Type, qt.Equals, DisconnectType)
 
 	msg.SetType(PlainType)
-	if msg.Type != PlainType {
-		t.Errorf("expected message with PlainType, got with other type (%d)", msg.Type)
-	}
+	c.Assert(msg.Type, qt.Equals, PlainType)
+
+	msg.SetType(-1)
+	c.Assert(msg.Type, qt.Equals, PlainType)
 }
 
 func TestMessageSetFrom(t *testing.T) {
-	var expected = &peer.Peer{Address: "localhost", Port: 8080}
-	var msg = new(Message).SetFrom(expected)
-	if !expected.Equal(msg.From) {
-		t.Errorf("expected %s, got %s", expected.String(), msg.From.String())
-	}
+	c := qt.New(t)
+
+	expected := &peer.Peer{Address: "localhost", Port: 8080}
+	msg := new(Message).SetFrom(expected)
+	c.Assert(msg.From, qt.DeepEquals, expected)
 
 	expected.Address = "0.0.0.0"
 	expected.Port = 8081
 	msg.SetFrom(expected)
-	if !expected.Equal(msg.From) {
-		t.Errorf("expected %s, got %s", expected.String(), msg.From.String())
-	}
+	c.Assert(msg.From, qt.DeepEquals, expected)
 }
 
 func TestMessageSetData(t *testing.T) {
-	var msg = &Message{Type: ConnectType}
-	var data = []byte("test data")
+	c := qt.New(t)
+
+	msg := &Message{Type: ConnectType}
+	data := []byte("test data")
 	msg.SetData(data)
-	if !reflect.DeepEqual(msg.Data, data) {
-		t.Errorf("expected %s, got %s", data, msg.Data)
-	} else if msg.Type != PlainType {
-		t.Errorf("expected message with PlainType, got with other type (%d)", msg.Type)
-	}
+
+	c.Assert(msg.Data, qt.DeepEquals, data)
+	c.Assert(msg.Type, qt.Equals, PlainType)
 }
 
 func TestMessageGetRequest(t *testing.T) {
-	var from = peer.Me(5000)
-	var msg = new(Message).SetData([]byte("EY")).SetFrom(from)
+	c := qt.New(t)
 
-	var buff = bytes.NewBuffer(msg.Data)
-	var expected, _ = http.NewRequest(http.MethodPost, from.Hostname(), buff)
+	from, _ := peer.Me(5000, false)
+	msg := new(Message).SetData([]byte("EY")).SetFrom(from)
+
+	buff := bytes.NewBuffer(msg.Data)
+	expected, _ := http.NewRequest(http.MethodPost, from.Hostname(), buff)
 	expected.Header.Add(addressHeader, from.Address)
 	expected.Header.Add(portHeader, fmt.Sprint(from.Port))
 
-	var result, err = msg.GetRequest(from.Hostname())
-	if err != nil {
-		t.Errorf("expected nil, got %v", err)
-	} else if result.Method != expected.Method {
-		t.Errorf("expected %s, got %s", expected.Method, result.Method)
-	} else if result.Header.Get(addressHeader) != from.Address {
-		t.Errorf("expected %s, got %s", from.Address, result.Header.Get(addressHeader))
-	} else if result.Header.Get(portHeader) != fmt.Sprint(from.Port) {
-		t.Errorf("expected %d, got %s", from.Port, result.Header.Get(portHeader))
-	} else if body, _ := io.ReadAll(result.Body); !reflect.DeepEqual(msg.Data, body) {
-		t.Errorf("expected %s, get %s", string(msg.Data), string(body))
-	}
+	result, err := msg.GetRequest(from.Hostname())
+	c.Assert(err, qt.IsNil)
+	c.Assert(result.Method, qt.Equals, expected.Method)
+	c.Assert(result.Header.Get(addressHeader), qt.Equals, from.Address)
+	c.Assert(result.Header.Get(portHeader), qt.Equals, fmt.Sprint(from.Port))
+
+	resBody, expBody := []byte{}, []byte{}
+	resLen, err := result.Body.Read(resBody)
+	c.Assert(err, qt.IsNil)
+	expLen, err := result.Body.Read(expBody)
+	c.Assert(err, qt.IsNil)
+	c.Assert(resLen, qt.Equals, expLen)
+	c.Assert(resBody, qt.DeepEquals, expBody)
 
 	msg = new(Message).SetData([]byte("EY"))
 	_, err = msg.GetRequest(from.Hostname())
-	if err == nil {
-		t.Error("expected error, got nil")
-	}
+	c.Assert(err, qt.IsNotNil)
 
 	msg = new(Message).SetFrom(from).SetType(ConnectType)
 	expected, _ = http.NewRequest(http.MethodGet, from.Hostname(), nil)
@@ -89,38 +86,32 @@ func TestMessageGetRequest(t *testing.T) {
 	expected.Header.Add(portHeader, fmt.Sprint(from.Port))
 
 	result, err = msg.GetRequest(from.Hostname())
-	if err != nil {
-		t.Errorf("expected nil, got %v", err)
-	} else if result.Method != expected.Method {
-		t.Errorf("expected %s, got %s", expected.Method, result.Method)
-	} else if result.Header.Get(addressHeader) != from.Address {
-		t.Errorf("expected %s, got %s", from.Address, result.Header.Get(addressHeader))
-	} else if result.Header.Get(portHeader) != fmt.Sprint(from.Port) {
-		t.Errorf("expected %d, got %s", from.Port, result.Header.Get(portHeader))
-	}
+	c.Assert(err, qt.IsNil)
+	c.Assert(result.Method, qt.Equals, expected.Method)
+	c.Assert(result.Header.Get(addressHeader), qt.Equals, from.Address)
+	c.Assert(result.Header.Get(portHeader), qt.Equals, fmt.Sprint(from.Port))
+	resLen, err = result.Body.Read([]byte{})
+	c.Assert(err, qt.IsNotNil)
+	c.Assert(resLen, qt.DeepEquals, len(msg.Data))
 }
 
 func TestMessageFromRequest(t *testing.T) {
-	var from = peer.Me(5000)
-	var data = []byte("ey")
-	var expected = new(Message).SetData(data).SetFrom(from)
+	c := qt.New(t)
 
-	var buff = bytes.NewBuffer(data)
-	var req, _ = http.NewRequest(http.MethodPost, from.Hostname(), buff)
+	from, _ := peer.Me(5000, false)
+	data := []byte("ey")
+	expected := new(Message).SetData(data).SetFrom(from)
+
+	buff := bytes.NewBuffer(data)
+	req, _ := http.NewRequest(http.MethodPost, from.Hostname(), buff)
 	req.Header.Add(addressHeader, from.Address)
 	req.Header.Add(portHeader, fmt.Sprint(from.Port))
 
-	var result = new(Message).FromRequest(req)
-	if expected.Type != result.Type {
-		t.Errorf("expected %d, got %d", expected.Type, result.Type)
-	} else if !expected.From.Equal(result.From) {
-		t.Errorf("expected %s, got %s", expected.From.String(), result.From.String())
-	} else if !reflect.DeepEqual(expected.Data, result.Data) {
-		t.Errorf("expected %s, got %s", fmt.Sprint(expected.Data), fmt.Sprint(result.Data))
-	}
+	result := new(Message).FromRequest(req)
+	c.Assert(result.Type, qt.Equals, expected.Type)
+	c.Assert(expected.From.Equal(result.From), qt.IsTrue)
+	c.Assert(result.Data, qt.DeepEquals, expected.Data)
 
 	req, _ = http.NewRequest(http.MethodGet, from.Hostname(), nil)
-	if result = new(Message).FromRequest(req); result != nil {
-		t.Errorf("expected nil, got %+v", result)
-	}
+	c.Assert(new(Message).FromRequest(req), qt.IsNil)
 }
