@@ -33,7 +33,7 @@ The main component to use gop2p is the [`node.Node`](noe/node.go) struct, that c
 
 #### 1. Start a `node.Node
 
-To start a new `node.Node` ad be able to send and receive messages (`gop2p.Message`) is required to instance a new `gop2p.Peer` with the network information (host IP address and port to listen requests).
+To start a new `node.Node` ad be able to send and receive messages (`message.Message`) is required to instance a new `peer.Peer` with the network information (host IP address and port to listen requests).
 
 <details>
 <summary style="padding-left: 5vh">Show a code example</summary>
@@ -71,7 +71,7 @@ func main() {
 </details>
 
 #### 2. Connect to a network and listen for messages or errors
-To connect to a network you must know the `peer.Peer` information of an entrypoint. Use `node.Node.Connect` channel to connect to it, the `node.Node.Inbo` channel to listen for messages and the `node.Node.Error` channel to listen for errors.
+To connect to a network you must know the `peer.Peer` information of an entrypoint. Use `node.Node.Connect` channel to connect to it, the `node.Node.Inbox` channel to listen for messages and the `node.Node.Error` channel to listen for errors.
 
 <details>
 <summary style="padding-left: 5vh">Show a code example</summary>
