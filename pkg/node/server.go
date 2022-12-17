@@ -48,6 +48,10 @@ func (node *Node) handleRequest() func(http.ResponseWriter, *http.Request) {
 		// Set default headers and parse current request into a message.
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		msg := new(message.Message).FromRequest(r)
+		if msg == nil {
+			http.Error(w, "No valid Message provided", http.StatusBadRequest)
+			return
+		}
 
 		// Select the handler based on the current request http.Method, GET
 		// method is for connection requests, POST method for the plain message
@@ -89,8 +93,8 @@ func (node *Node) handleRequest() func(http.ResponseWriter, *http.Request) {
 			}
 		default:
 			// By default response with 405 HTTP Status Code.
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			w.Write([]byte("405 - Method not allowed!"))
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
 		}
 	}
 }
