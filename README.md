@@ -13,7 +13,7 @@ go get github.com/lucasmenendez/gop2p@latest
 - Also, it is available a simple **example** that implments a CLI Chat [here](example/cli-chat/).
 
 ### How to use it
-The main component to use gop2p is the [`node.Node`](noe/node.go) struct, that contains the required parameters and functions to create or join to the network:
+The main component to use gop2p is the [`node.Node`](noe/node.go) struct, that contains the required _parameters_ (to listen for messages, handle errors and connect or disconnect) and _functions_ to create, start stop the `node.Node`:
 
 ```go
     type Node struct {
@@ -27,6 +27,18 @@ The main component to use gop2p is the [`node.Node`](noe/node.go) struct, that c
         Connect chan *peer.Peer       // writtable channel to connect to a Peer
         Leave   chan struct{}         // writtable channel to leave the network
 
+        // ...
+    }
+
+    func (node *Node) Start() {
+        // ...
+    }
+
+    func (node *Node) Wait() {
+        // ...
+    }
+
+    func (node *Node) Stop() {
         // ...
     }
 ```
