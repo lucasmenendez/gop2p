@@ -15,7 +15,7 @@ go get github.com/lucasmenendez/gop2p@latest
 ### How to use it
 The main component to use gop2p is the [`node.Node`](noe/node.go) struct, that contains: 
 
- * Required _parameters_ to handle **messages** or **errors**, and **connect** or **disconnect** a `node.Node`:
+ * Required _parameters_ to handle **messages/errors**, and **connect/disconnect** a `node.Node`:
 
 ```go
     type Node struct {
@@ -33,7 +33,7 @@ The main component to use gop2p is the [`node.Node`](noe/node.go) struct, that c
     }
 ```
 
- * Required _functions_ to **create**, **start**, **wait** or **stop** a `node.Node`:
+ * Required _functions_ to **create**, **start/stop** and **wait** a `node.Node`:
 
 ```go
     func (node *Node) Start() {
