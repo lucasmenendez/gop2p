@@ -1,7 +1,9 @@
 package node
 
 import (
+	"fmt"
 	"io"
+	"net/http"
 
 	"github.com/lucasmenendez/gop2p/pkg/message"
 	"github.com/lucasmenendez/gop2p/pkg/peer"
@@ -32,6 +34,12 @@ func (node *Node) connect(entryPoint *peer.Peer) {
 	res, err := node.client.Do(req)
 	if err != nil {
 		node.Error <- ConnErr("error trying to connect to a peer", err, msg)
+		return
+	}
+
+	if res.StatusCode != http.StatusOK {
+		err := fmt.Errorf("%d http status received from %s", res.StatusCode, entryPoint)
+		node.Error <- ConnErr("error making the request to a peer", err, nil)
 		return
 	}
 
