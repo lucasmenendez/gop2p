@@ -75,15 +75,20 @@ func (node *Node) connect(entryPoint *peer.Peer) {
 	// avoid unnecesary calls).
 	node.broadcast(msg)
 	node.Members.Append(entryPoint)
-
 }
 
 // disconnect function perform a graceful disconnection, warning to other
 // network members about the disconnection and deleting registered peers from
 // current member list.
 func (node *Node) disconnect() {
+	// Send an error to Node.Error channel if the node is not connected
+	if !node.IsConnected() {
+		node.Error <- ConnErr("node not connected", nil, nil)
+		return
+	}
+
 	// Warn to other network peers about the disconnection
-	var msg = new(message.Message).SetType(message.DisconnectType).SetFrom(node.Self)
+	msg := new(message.Message).SetType(message.DisconnectType).SetFrom(node.Self)
 	node.broadcast(msg)
 
 	// Clean current member list
@@ -95,6 +100,12 @@ func (node *Node) disconnect() {
 // node network. It iterates over current network peers performing a
 // http.Request from the message provided.
 func (node *Node) broadcast(msg *message.Message) {
+	// Send an error to Node.Error channel if the node is not connected
+	if !node.IsConnected() {
+		node.Error <- ConnErr("node not connected", nil, nil)
+		return
+	}
+
 	// Iterate over each member encoding as a request and performing it with
 	// the provided Message.
 	for _, peer := range node.Members.Peers() {

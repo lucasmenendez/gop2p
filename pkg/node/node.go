@@ -87,18 +87,9 @@ func (node *Node) Start() {
 			case peer := <-node.Connect:
 				node.connect(peer)
 			case msg := <-node.Outbox:
-				if node.IsConnected() {
-					go node.broadcast(msg)
-				} else {
-					node.Error <- ConnErr("node not connected", nil, nil)
-				}
+				go node.broadcast(msg)
 			case <-node.Leave:
-				if node.IsConnected() {
-					node.disconnect()
-				} else {
-					node.Error <- ConnErr("node not connected", nil, nil)
-				}
-
+				node.disconnect()
 				// Reinitialize the channel when be closed
 				node.Leave = make(chan struct{})
 			}
@@ -126,7 +117,7 @@ func (node *Node) Stop() {
 	// Stop goroutines
 	node.waiter.Done()
 
-	// If the node is connected, disconnect ir
+	// If the node is connected, disconnect from the network
 	if node.IsConnected() {
 		node.disconnect()
 	}
