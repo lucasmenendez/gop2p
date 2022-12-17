@@ -37,8 +37,8 @@ func (node *Node) connect(entryPoint *peer.Peer) {
 		return
 	}
 
-	if res.StatusCode != http.StatusOK {
-		err := fmt.Errorf("%d http status received from %s", res.StatusCode, entryPoint)
+	if code := res.StatusCode; code != http.StatusOK {
+		err := fmt.Errorf("%d http status received from %s", code, entryPoint)
 		node.Error <- ConnErr("error making the request to a peer", err, nil)
 		return
 	}
