@@ -2,8 +2,8 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 
@@ -35,7 +35,7 @@ func printInputs(client *node.Node) {
 			select {
 			// Catch messages
 			case msg := <-client.Inbox:
-				logger.Printf("[%s] -> %s\n", msg.From.String(), string(msg.Data))
+				logger.Printf("[%s] -> %s\n", msg.From, string(msg.Data))
 			// Catch errors
 			case err := <-client.Error:
 				logger.Println("/ERROR/:", err.Error())
@@ -74,7 +74,7 @@ func main() {
 			if entryPoint != nil {
 				client.Connect <- entryPoint
 			} else {
-				client.Error <- errors.New("entry point not defined")
+				client.Error <- fmt.Errorf("entry point not defined")
 			}
 		case "disconnect":
 			close(client.Leave)
