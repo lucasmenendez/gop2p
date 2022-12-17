@@ -2,7 +2,6 @@ package node
 
 import (
 	"io"
-	"net/http"
 
 	"github.com/lucasmenendez/gop2p/pkg/message"
 	"github.com/lucasmenendez/gop2p/pkg/peer"
@@ -22,31 +21,31 @@ func (node *Node) setConnected(connected bool) {
 // populate its information.
 func (node *Node) connect(entryPoint *peer.Peer) {
 	// Create the request using a connection message.
-	var msg = new(message.Message).SetType(message.ConnectType).SetFrom(node.Self)
-	var req, err = msg.GetRequest(entryPoint.Hostname())
+	msg := new(message.Message).SetType(message.ConnectType).SetFrom(node.Self)
+	req, err := msg.GetRequest(entryPoint.Hostname())
 	if err != nil {
 		node.Error <- ParseErr("error encoding message to request", err, msg)
 		return
 	}
 
 	// Try to join into the network through the provided peer
-	var res *http.Response
-	if res, err = node.client.Do(req); err != nil {
+	res, err := node.client.Do(req)
+	if err != nil {
 		node.Error <- ConnErr("error trying to connect to a peer", err, msg)
 		return
 	}
 
 	// Reading the list of current members of the network from the peer
 	// response.
-	var body []byte
-	defer res.Body.Close()
-	if body, err = io.ReadAll(res.Body); err != nil {
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
 		node.Error <- ParseErr("error reading peer response body", err, msg)
 		return
 	}
+	res.Body.Close()
 
 	// Parsing the received list
-	var receivedMembers = peer.NewMembers()
+	receivedMembers := peer.NewMembers()
 	if receivedMembers, err = receivedMembers.FromJSON(body); err != nil {
 		node.Error <- ParseErr("error parsing incoming member list", err, msg)
 		return

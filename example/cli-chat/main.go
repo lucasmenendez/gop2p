@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"flag"
-	"fmt"
 	"log"
 	"os"
 
@@ -51,8 +50,7 @@ func main() {
 
 	// If entry point node port is not setted, the default value will be 0,
 	// which is not a valid as port value so peer.Me function will be return nil
-	entryPoint, err := peer.Me(entryPort, true)
-	fmt.Println(err)
+	entryPoint, _ := peer.Me(entryPort, false)
 
 	// Start current node on provided port
 	selfPeer, _ := peer.Me(selfPort, false)

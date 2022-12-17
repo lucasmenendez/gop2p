@@ -11,7 +11,7 @@ import (
 // and tries to start the HTTP server.
 func (node *Node) startListening() {
 	// Only listen on root and send every request to node handler.
-	var mux = http.NewServeMux()
+	mux := http.NewServeMux()
 	mux.HandleFunc("/", node.handleRequest())
 
 	// Create the node HTTP server to listen to other peers requests.
@@ -19,7 +19,7 @@ func (node *Node) startListening() {
 
 	// If some error occurs it will be writted into Error channel and try to
 	// disconnect.
-	var err = node.server.ListenAndServe()
+	err := node.server.ListenAndServe()
 
 	// If something was wrong, except the server is cosed, handle the error.
 	if err != nil && err != http.ErrServerClosed {
@@ -62,7 +62,7 @@ func (node *Node) handleRequest() func(http.ResponseWriter, *http.Request) {
 			// Encode current list of members to a JSON to send it
 			responseBody, err := node.Members.ToJSON()
 			if err != nil {
-				var errMsg = "error encoding members to JSON"
+				errMsg := "error encoding members to JSON"
 				node.Error <- ParseErr(errMsg, err, msg)
 				http.Error(w, errMsg, http.StatusInternalServerError)
 				return

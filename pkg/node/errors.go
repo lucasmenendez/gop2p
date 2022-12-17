@@ -20,14 +20,14 @@ type NodeErr struct {
 }
 
 func (err *NodeErr) Error() string {
-	var tag = "internal error"
+	tag := "internal error"
 	if err.ErrCode == CONNECTION_ERR {
 		tag = "connection error"
 	} else if err.ErrCode == PARSING_ERR {
 		tag = "parsing error"
 	}
 
-	var text = err.Text
+	text := err.Text
 	if err.Message != nil {
 		text = fmt.Sprintf("%s (msg %s)", text, err.Message.String())
 	}
