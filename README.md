@@ -1,4 +1,6 @@
 [![GoDoc](https://godoc.org/github.com/lucasmenendez/gop2p?status.svg)](https://godoc.org/github.com/lucasmenendez/gop2p) [![Go Report Card](https://goreportcard.com/badge/github.com/lucasmenendez/gop2p)](https://goreportcard.com/report/github.com/lucasmenendez/gop2p)
+[![test](https://github.com/lucasmenendez/gop2p/workflows/test/badge.svg)](https://github.com/lucasmenendez/gop2p/actions?query=workflow%3Atest)
+[![license](https://img.shields.io/github/license/lucasmenendez/gop2p)](LICENSE)
 
 # gop2p
 Simple *Peer-to-Peer* protocol implementation in pure Go. Uses HTTP client and server to communicate over internet to knowed network members.
