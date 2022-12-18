@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -23,6 +24,34 @@ func testServer(h func(http.ResponseWriter, *http.Request)) (*httptest.Server, i
 	srvData, _ := url.Parse(srv.URL)
 	port, _ := strconv.Atoi(srvData.Port())
 	return srv, port
+}
+
+func Test_setConnected(t *testing.T) {
+	c := qt.New(t)
+
+	p, _ := peer.Me(5000, false)
+	n := New(p)
+	c.Assert(n.connected, qt.IsFalse)
+
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+	go func(n *Node, c *qt.C, wg *sync.WaitGroup) {
+		state := true
+		for i := 0; i < 10; i++ {
+			n.setConnected(state)
+			c.Assert(n.connected, qt.Equals, state)
+			state = !state
+		}
+		wg.Done()
+	}(n, c, wg)
+
+	state := true
+	for i := 0; i < 10; i++ {
+		n.setConnected(state)
+		c.Assert(n.connected, qt.Equals, state)
+		state = !state
+	}
+	wg.Wait()
 }
 
 func Test_connect(t *testing.T) {
