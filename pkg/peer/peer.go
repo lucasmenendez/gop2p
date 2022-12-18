@@ -52,7 +52,7 @@ func New(address string, port int) (*Peer, error) {
 // Me function creates and returns a new peer with the current host address and
 // the port provided as input. The function also receives a boolean as a second
 // parameter 'remote' that indicates if the peer is a local peer (with local IP
-// or 'localhost' as Addres) or a remote one (with 0.0.0.0 IP as Address)
+// or 'localhost' as Address) or a remote one (with 0.0.0.0 IP as Address)
 func Me(port int, remote bool) (*Peer, error) {
 	if remote {
 		return New(allAddresses, port)

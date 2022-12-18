@@ -7,7 +7,7 @@ import (
 )
 
 // startListening function creates a HTTP request multiplexer to assing the root
-// path to the Node.handleRequest function, asign it to the current Node.server
+// path to the Node.handleRequest function, assign it to the current Node.server
 // and tries to start the HTTP server.
 func (node *Node) startListening() {
 	// Only listen on root and send every request to node handler.

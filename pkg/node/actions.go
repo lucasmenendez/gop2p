@@ -72,7 +72,7 @@ func (node *Node) connect(entryPoint *peer.Peer) {
 
 	// Send the same message to each member to greet them and append to the
 	// registered members the entrypoint (after send the broadcast the greet to
-	// avoid unnecesary calls).
+	// avoid unnecessary calls).
 	node.broadcast(msg)
 	node.Members.Append(entryPoint)
 }

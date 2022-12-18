@@ -1,4 +1,4 @@
-// message package provide an abstraction of the data that is transfered by
+// message package provide an abstraction of the data that is transferred by
 // peers in the network. Currently three types of messages available:
 // connection, disconnection and plain message. The package provide a group of
 // functions associated to the messages for common tasks as message creation,
@@ -72,7 +72,7 @@ func (msg *Message) String() string {
 // GetRequest function generates a http.Request to the provided uri endpoint
 // with the current message information, setting correct http.Method based on
 // the message type, the message peer information as http.Header and message
-// data as request body, then return it if everthing was ok, unless returns an
+// data as request body, then return it if everything was ok, unless returns an
 // error.
 func (msg *Message) GetRequest(uri string) (*http.Request, error) {
 	if msg.From == nil || msg.From.Address == "" || msg.From.Port == 0 {

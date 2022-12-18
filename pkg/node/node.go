@@ -27,7 +27,7 @@ import (
 
 // Node struct contains the information about the current peer associated to
 // this node, the current network peers, some channels to errors, messages
-// (send/receive) and network (connect/leave) managment. Also contains some
+// (send/receive) and network (connect/leave) management. Also contains some
 // hidden parameters such as the http.Client associated to the node or a
 // WaitGroup to keep the node working.
 type Node struct {
