@@ -15,9 +15,9 @@ go get github.com/lucasmenendez/gop2p@latest
 - Also, it is available a simple **example** that implments a CLI Chat [here](example/cli-chat/).
 
 ### How to use it
-The main component to use gop2p is the [`node.Node`](noe/node.go) struct, that contains: 
+The main component to use gop2p is the `node.Node` struct, that contains: 
 
- * Required _parameters_ to handle **messages/errors**, and **connect/disconnect** a `node.Node`:
+ * Required _parameters_ to handle **messages/errors**, and **connect/disconnect** a [`nod.Node`:
 
 ```go
     type Node struct {
@@ -33,7 +33,7 @@ The main component to use gop2p is the [`node.Node`](noe/node.go) struct, that c
     }
 ```
 
- * Required _functions_ to **create**, **start** and **stop** a `node.Node`:
+ * Required _functions_ to **create**, **start** and **stop** a [`nod.Node`:
 
 ```go
     func New(self *peer.Peer) *Node {
@@ -84,7 +84,7 @@ func main() {
 ```
 </details>
 
-#### 2. Connect to a network and listen for `message.Message` or `error`s
+#### 2. Connect to a network and listen fo [`message.Message` or `error`s
 To connect to a network you must know the `peer.Peer` information of an entrypoint. Use `node.Node.Connection` channel to connect to it, the `node.Node.Inbox` channel to listen for messages and the `node.Node.Error` channel to listen for errors.
 
 <details>
@@ -131,8 +131,8 @@ func main() {
 ```
 </details>
 
-#### 3. Send a `message.Message` to the network 
-To broadcast data to the network it must be wrapped using a `message.Message` and the result must be sended using the `node.Outbox` channel.
+#### 3. Send  [`message.Message` to the network 
+To broadcast data to the network it must be wrapped using  [`message.Message` and the result must be sended using the `node.Outbox` channel.
 
 <details>
 <summary style="padding-left: 5vh">Show a code example</summary>
@@ -166,7 +166,7 @@ func main() {
 </details>
 
 #### 4. Disconnect from the network 
-To disconnect from the current network (if the client is already connected to one), the `node.Connection` channel must be closed. The client `node.Node` broadcast a disconnection request to every network `peer.Peer`. The `node.Node` associated to every `peer.Peer`, updates its current network member list unregistering the current `peer.Peer`. At this moment, the current `node.Node` could connect to other network in any moment (see [step 2](#2-connect-to-a-network-and-listen-for-messages-or-errors)).
+To disconnect from the current network (if the client is already connected to one), the `node.Connection` channel must be closed. The client `node.Node` broadcast a disconnection request to every network [`pee.Peer`. The `node.Node` associated to every [`pee.Peer`, updates its current network member list unregistering the current [`pee.Peer`. At this moment, the current `node.Node` could connect to other network in any moment (see [step 2](#2-connect-to-a-network-and-listen-for-messages-or-errors)).
 
 <details>
 <summary style="padding-left: 5vh">Show a code example</summary>
