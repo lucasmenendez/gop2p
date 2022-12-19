@@ -1,4 +1,4 @@
-module github.com/lucasmenendez/gop2p
+module github.com/lucasmenendez/gop2p/v2
 
 go 1.19
 
