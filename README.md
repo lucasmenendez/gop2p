@@ -33,18 +33,18 @@ The main component to use gop2p is the [`node.Node`](noe/node.go) struct, that c
     }
 ```
 
- * Required _functions_ to **create**, **start/stop** and **wait** a `node.Node`:
+ * Required _functions_ to **create**, **start** and **stop** a `node.Node`:
 
 ```go
+    func New(self *peer.Peer) *Node {
+        // ...
+    }
+
     func (node *Node) Start() {
         // ...
     }
 
-    func (node *Node) Wait() {
-        // ...
-    }
-
-    func (node *Node) Stop() {
+    func (node *Node) Stop() error {
         // ...
     }
 ```
@@ -77,10 +77,6 @@ func main() {
 
     // Start listening to be able to send and receive messages
     client.Start()
-
-    // To prevent that the current routine ends (if it is necessary) keep 
-    // it waiting
-    defer client.Wait()
 
     //...
 }
@@ -119,7 +115,7 @@ func main() {
     // through Node.Inbox, and every error channel that occurs trough Node.Error
     // channel
     logger := log.New(os.Stdout, "", 0)
-    go func() {
+    go func(logger *log.Logger) {
         for {
             select {
             case msg := <-client.Inbox:
@@ -128,7 +124,7 @@ func main() {
                 logger.Fatalln(err)
             }
         }
-    }()
+    }(logger)
 
     // ...
 }
@@ -219,7 +215,9 @@ func main() {
     // ...
 
     // Stop the Node
-    client.Stop()
+    if err := client.Stop(); err != {
+        logger.Fatalln(err)
+    }
 }
 ```
 
