@@ -12,7 +12,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/lucasmenendez/gop2p/v2/pkg/peer"
+	"github.com/lucasmenendez/gop2p/pkg/peer"
 )
 
 const (

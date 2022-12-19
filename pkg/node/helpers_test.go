@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/lucasmenendez/gop2p/v2/pkg/message"
-	"github.com/lucasmenendez/gop2p/v2/pkg/peer"
+	"github.com/lucasmenendez/gop2p/pkg/message"
+	"github.com/lucasmenendez/gop2p/pkg/peer"
 )
 
 var httpClient = &http.Client{}
