@@ -2,43 +2,45 @@ package main
 
 import (
 	"bufio"
+	"crypto/rand"
 	"flag"
-	"fmt"
 	"log"
+	"math/big"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/lucasmenendez/gop2p/pkg/message"
 	"github.com/lucasmenendez/gop2p/pkg/node"
 	"github.com/lucasmenendez/gop2p/pkg/peer"
 )
 
-func getOptions() (int, int) {
-	var (
-		selfPortFlag  = flag.Int("self", 5000, "self node port")
-		entryPortFlag = flag.Int("entry", 5000, "entrypoint node port")
-	)
+func getOptions() int {
+	minSafePort, maxSafePort := 49152, 65535
+	limit := new(big.Int).SetInt64(int64(maxSafePort - minSafePort))
+	r, _ := rand.Int(rand.Reader, limit)
+	randomSafePort := int(r.Int64()) + minSafePort
+	selfPortFlag := flag.Int("self", randomSafePort, "self node port")
 	flag.Parse()
 
-	selfPort, entryPort := *selfPortFlag, *entryPortFlag
-	if selfPort == entryPort {
-		entryPort = -1
-	}
-
-	return selfPort, entryPort
+	return *selfPortFlag
 }
 
 func printInputs(client *node.Node) {
 	// Create a logger and pass as argument to the goroutine
 	logger := log.New(os.Stdout, "", 0)
+	logger.Printf("[INFO] started on %s\n", client.Self.Hostname())
 	go func(logger *log.Logger) {
 		for {
 			select {
 			// Catch messages
 			case msg := <-client.Inbox:
-				logger.Printf("[%s] -> %s\n", msg.From, string(msg.Data))
+				logger.Printf("[MSG] (%s) -> %s\n", msg.From, string(msg.Data))
 			// Catch errors
 			case err := <-client.Error:
-				logger.Println("/ERROR/:", err.Error())
+				if err != nil {
+					logger.Println("[ERROR]:", err.Error())
+				}
 			}
 		}
 	}(logger)
@@ -46,11 +48,7 @@ func printInputs(client *node.Node) {
 
 func main() {
 	// Get parsed current node and entry point node ports from cmd flags
-	selfPort, entryPort := getOptions()
-
-	// If entry point node port is not setted, the default value will be 0,
-	// which is not a valid as port value so peer.Me function will be return nil
-	entryPoint, _ := peer.Me(entryPort, false)
+	selfPort := getOptions()
 
 	// Start current node on provided port
 	selfPeer, _ := peer.Me(selfPort, false)
@@ -68,22 +66,27 @@ func main() {
 		prompt, _ := reader.ReadBytes('\n')
 		prompt = prompt[:len(prompt)-1]
 
-		// Catch some commands or send the input as a message
-		switch string(prompt) {
-		case "connect":
-			if entryPoint != nil {
-				client.Connect <- entryPoint
-			} else {
-				client.Error <- fmt.Errorf("entry point not defined")
+		args := strings.Fields(string(prompt))
+		if len(args) > 0 {
+			// Catch some commands or send the input as a message
+			switch args[0] {
+			case "connect":
+				if len(args) > 1 {
+					if port, err := strconv.Atoi(args[1]); err == nil {
+						p, _ := peer.Me(port, false)
+						client.Connection <- p
+					}
+				}
+			case "disconnect":
+				close(client.Connection)
+			case "exit":
+				client.Stop()
+				return
+			default:
+				msg := new(message.Message).SetFrom(client.Self).SetData(prompt)
+				client.Outbox <- msg
 			}
-		case "disconnect":
-			close(client.Leave)
-		case "exit":
-			client.Stop()
-			return
-		default:
-			msg := new(message.Message).SetFrom(client.Self).SetData(prompt)
-			client.Outbox <- msg
 		}
+
 	}
 }

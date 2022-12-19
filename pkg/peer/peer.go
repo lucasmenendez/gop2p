@@ -78,16 +78,16 @@ func Me(port int, remote bool) (*Peer, error) {
 
 // Equal function returns if the current peer is the same that the provided one.
 // It seems that both has the same address and port.
-func (peer *Peer) Equal(to *Peer) bool {
-	return peer.Address == to.Address && peer.Port == to.Port
+func (p *Peer) Equal(to *Peer) bool {
+	return p.Address == to.Address && p.Port == to.Port
 }
 
 // String function returns a human-readable format of the current peer.
-func (peer *Peer) String() string {
-	return fmt.Sprintf(baseString, peer.Address, peer.Port)
+func (p *Peer) String() string {
+	return fmt.Sprintf(baseString, p.Address, p.Port)
 }
 
 // Hostname function returns the current peer information as URL form.
-func (peer *Peer) Hostname() string {
-	return fmt.Sprintf(baseHostname, peer.Address, peer.Port)
+func (p *Peer) Hostname() string {
+	return fmt.Sprintf(baseHostname, p.Address, p.Port)
 }

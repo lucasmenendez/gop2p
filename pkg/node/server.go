@@ -4,31 +4,33 @@ import (
 	"net/http"
 
 	"github.com/lucasmenendez/gop2p/pkg/message"
+	"github.com/lucasmenendez/gop2p/pkg/peer"
 )
 
 // startListening function creates a HTTP request multiplexer to assing the root
 // path to the Node.handleRequest function, assign it to the current Node.server
 // and tries to start the HTTP server.
-func (node *Node) startListening() {
+func (n *Node) startListening() {
 	// Only listen on root and send every request to node handler.
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", node.handleRequest())
+	mux.HandleFunc("/", n.handleRequest())
 
 	// Create the node HTTP server to listen to other peers requests.
-	node.server.Handler = mux
+	n.server.Handler = mux
 
 	// If some error occurs it will be writted into Error channel and try to
 	// disconnect.
-	err := node.server.ListenAndServe()
+	err := n.server.ListenAndServe()
 
 	// If something was wrong, except the server is cosed, handle the error.
 	if err != nil && err != http.ErrServerClosed {
-		node.Error <- InternalErr("error listening for HTTP requests", err, nil)
+		n.Error <- InternalErr("error listening for HTTP requests", err, nil)
 
 		// If the current node was connected, update status to disconnected and
 		// close the channel.
-		if node.IsConnected() {
-			node.setConnected(false)
+		if n.IsConnected() {
+			n.Members = peer.NewMembers()
+			n.setConnected(false)
 		}
 	}
 }
@@ -38,7 +40,7 @@ func (node *Node) startListening() {
 // correct handler based on the parsed message from the request. The connection
 // message will come from "GET" requests, the disconnection message from
 // "DELETE" requests and the plain message from "POST" requests.
-func (node *Node) handleRequest() func(http.ResponseWriter, *http.Request) {
+func (n *Node) handleRequest() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Omit OPTION requests.
 		if r.Method == http.MethodOptions {
@@ -64,18 +66,18 @@ func (node *Node) handleRequest() func(http.ResponseWriter, *http.Request) {
 			// list encoding to JSON.
 
 			// Encode current list of members to a JSON to send it
-			responseBody, err := node.Members.ToJSON()
+			responseBody, err := n.Members.ToJSON()
 			if err != nil {
 				errMsg := "error encoding members to JSON"
-				node.Error <- ParseErr(errMsg, err, msg)
+				n.Error <- ParseErr(errMsg, err, msg)
 				http.Error(w, errMsg, http.StatusInternalServerError)
 				return
 			}
 
 			// Update the current member list safely appending the Message.From
 			// Peer and if the current node was not connected update its status.
-			node.Members.Append(msg.From)
-			node.setConnected(true)
+			n.Members.Append(msg.From)
+			n.setConnected(true)
 
 			// Send the current member list JSON to the connected peer
 			w.Header().Set("Content-Type", "text/plain")
@@ -83,13 +85,13 @@ func (node *Node) handleRequest() func(http.ResponseWriter, *http.Request) {
 		case message.PlainType:
 			// When plain message is received it will be redirected to the inbox
 			// messages channel where the user will be waiting for read it.
-			node.Inbox <- msg
+			n.Inbox <- msg
 		case message.DisconnectType:
 			// disconnected function deletes the message peer from the current
 			// network members.
-			node.Members.Delete(msg.From)
-			if node.Members.Len() == 0 {
-				node.setConnected(false)
+			n.Members.Delete(msg.From)
+			if n.Members.Len() == 0 {
+				n.setConnected(false)
 			}
 		default:
 			// By default response with 405 HTTP Status Code.

@@ -7,7 +7,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strconv"
-	"sync"
 	"testing"
 	"time"
 
@@ -32,26 +31,8 @@ func Test_setConnected(t *testing.T) {
 	p, _ := peer.Me(5000, false)
 	n := New(p)
 	c.Assert(n.connected, qt.IsFalse)
-
-	wg := new(sync.WaitGroup)
-	wg.Add(1)
-	go func(n *Node, c *qt.C, wg *sync.WaitGroup) {
-		state := true
-		for i := 0; i < 10; i++ {
-			n.setConnected(state)
-			c.Assert(n.connected, qt.Equals, state)
-			state = !state
-		}
-		wg.Done()
-	}(n, c, wg)
-
-	state := true
-	for i := 0; i < 10; i++ {
-		n.setConnected(state)
-		c.Assert(n.connected, qt.Equals, state)
-		state = !state
-	}
-	wg.Wait()
+	n.setConnected(true)
+	c.Assert(n.connected, qt.IsTrue)
 }
 
 func Test_connect(t *testing.T) {

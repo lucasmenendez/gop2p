@@ -27,10 +27,8 @@ The main component to use gop2p is the [`node.Node`](noe/node.go) struct, that c
         Inbox chan *message.Message // readable channels to receive messages
         Error chan error            // readable channels to receive errors
 
-        Outbox  chan *message.Message // writtable channel to send messages
-        Connect chan *peer.Peer       // writtable channel to connect to a Peer
-        Leave   chan struct{}         // writtable channel to leave the network
-
+        Connection chan *peer.Peer       // writtable channel to connect to a Peer
+        Outbox     chan *message.Message // writtable channel to send messages
         // ...
     }
 ```
@@ -91,7 +89,7 @@ func main() {
 </details>
 
 #### 2. Connect to a network and listen for `message.Message` or `error`s
-To connect to a network you must know the `peer.Peer` information of an entrypoint. Use `node.Node.Connect` channel to connect to it, the `node.Node.Inbox` channel to listen for messages and the `node.Node.Error` channel to listen for errors.
+To connect to a network you must know the `peer.Peer` information of an entrypoint. Use `node.Node.Connection` channel to connect to it, the `node.Node.Inbox` channel to listen for messages and the `node.Node.Error` channel to listen for errors.
 
 <details>
 <summary style="padding-left: 5vh">Show a code example</summary>
@@ -114,8 +112,8 @@ func main() {
     entryPoint, _ := peer.Me(5000, false)
     // [REMOTE ENTRYPOINT] entryPoint, _ := peer.New("192.68.1.43", 5000)
 
-    // Connect to the defined entry point peer usign the Connect channel
-    client.Connect <- entryPoint
+    // Connection to the defined entry point peer usign the Connect channel
+    client.Connection <- entryPoint
 
     // Print incoming messages and errors. Every incoming message is populated
     // through Node.Inbox, and every error channel that occurs trough Node.Error
@@ -172,7 +170,7 @@ func main() {
 </details>
 
 #### 4. Disconnect from the network 
-To disconnect from the current network (if the client is already connected to one), the `node.Leave` channel must be closed. The client `node.Node` broadcast a disconnection request to every network `peer.Peer`. The `node.Node` associated to every `peer.Peer`, updates its current network member list unregistering the current `peer.Peer`. At this moment, the current `node.Node` could connect to other network in any moment (see [step 2](#2-connect-to-a-network-and-listen-for-messages-or-errors)).
+To disconnect from the current network (if the client is already connected to one), the `node.Connection` channel must be closed. The client `node.Node` broadcast a disconnection request to every network `peer.Peer`. The `node.Node` associated to every `peer.Peer`, updates its current network member list unregistering the current `peer.Peer`. At this moment, the current `node.Node` could connect to other network in any moment (see [step 2](#2-connect-to-a-network-and-listen-for-messages-or-errors)).
 
 <details>
 <summary style="padding-left: 5vh">Show a code example</summary>
@@ -191,8 +189,8 @@ import (
 func main() {
     // ...
 
-    // Close the Node.Leave channel to disconnect from the network
-    close(client.Leave)
+    // Close the Node.Connection channel to disconnect from the network
+    close(client.Connection)
 
     // ...
 }
