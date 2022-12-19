@@ -5,8 +5,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/lucasmenendez/gop2p/pkg/message"
-	"github.com/lucasmenendez/gop2p/pkg/peer"
+	"github.com/lucasmenendez/gop2p/v2/pkg/message"
+	"github.com/lucasmenendez/gop2p/v2/pkg/peer"
 )
 
 // setConnected function updates the current node status safely using a mutex.

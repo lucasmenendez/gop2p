@@ -8,8 +8,8 @@ import (
 	"time"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/lucasmenendez/gop2p/pkg/message"
-	"github.com/lucasmenendez/gop2p/pkg/peer"
+	"github.com/lucasmenendez/gop2p/v2/pkg/message"
+	"github.com/lucasmenendez/gop2p/v2/pkg/peer"
 )
 
 func Test_setConnected(t *testing.T) {

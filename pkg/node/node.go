@@ -22,8 +22,8 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/lucasmenendez/gop2p/pkg/message"
-	"github.com/lucasmenendez/gop2p/pkg/peer"
+	"github.com/lucasmenendez/gop2p/v2/pkg/message"
+	"github.com/lucasmenendez/gop2p/v2/pkg/peer"
 )
 
 // Node struct contains the information about the current peer associated to

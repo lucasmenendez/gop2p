@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/lucasmenendez/gop2p/pkg/message"
-	"github.com/lucasmenendez/gop2p/pkg/node"
-	"github.com/lucasmenendez/gop2p/pkg/peer"
+	"github.com/lucasmenendez/gop2p/v2/pkg/message"
+	"github.com/lucasmenendez/gop2p/v2/pkg/node"
+	"github.com/lucasmenendez/gop2p/v2/pkg/peer"
 )
 
 func getOptions() int {
