@@ -65,9 +65,9 @@ func New(self *peer.Peer) *Node {
 		connected: false,
 		connMtx:   &sync.Mutex{},
 
-		ctx:    ctx,    // Initialize as nil to know if the the node is started
-		cancel: cancel, // Initialize as nil to know if the the node is started
-		server: nil,    // Initialize as nil to know if the the node is started
+		ctx:    ctx,
+		cancel: cancel,
+		server: nil, // Initialize as nil to know if the the node is started
 		client: &http.Client{},
 		waiter: &sync.WaitGroup{},
 	}
