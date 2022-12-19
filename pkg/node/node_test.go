@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"sync"
 	"testing"
+	"time"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/lucasmenendez/gop2p/pkg/message"
@@ -112,6 +113,7 @@ func TestNodeStop(t *testing.T) {
 	t.Run("success start stop node", func(t *testing.T) {
 		n := initNode(t, getRandomPort())
 		n.Start()
+		time.Sleep(time.Second)
 		err := n.Stop()
 		c.Assert(err, qt.IsNil)
 	})
