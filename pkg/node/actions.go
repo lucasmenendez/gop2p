@@ -21,37 +21,37 @@ func (node *Node) setConnected(connected bool) {
 // peer and it response with the current network members. To complete the
 // joining, the current node send the same request to ever member received to
 // populate its information.
-func (n *Node) connect(entryPoint *peer.Peer) error {
+func (n *Node) connect(entryPoint *peer.Peer) *NodeErr {
 	// Create the request using a connection message.
 	msg := new(message.Message).SetType(message.ConnectType).SetFrom(n.Self)
 	req, err := msg.GetRequest(entryPoint.Hostname())
 	if err != nil {
-		return ParseErr("error encoding message to request", err, msg)
+		return ParseErr("error encoding message to request", err)
 	}
 
 	// Try to join into the network through the provided peer
 	res, err := n.client.Do(req)
 	if err != nil {
-		return ConnErr("error trying to connect to a peer", err, msg)
+		return ConnErr("error trying to connect to a peer", err)
 	}
 
 	if code := res.StatusCode; code != http.StatusOK {
 		err := fmt.Errorf("%d http status received from %s", code, entryPoint)
-		return ConnErr("error making the request to a peer", err, nil)
+		return ConnErr("error making the request to a peer", err)
 	}
 
 	// Reading the list of current members of the network from the peer
 	// response.
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		return ParseErr("error reading peer response body", err, msg)
+		return ParseErr("error reading peer response body", err)
 	}
 	res.Body.Close()
 
 	// Parsing the received list
 	receivedMembers := peer.NewMembers()
 	if receivedMembers, err = receivedMembers.FromJSON(body); err != nil {
-		return ParseErr("error parsing incoming member list", err, msg)
+		return ParseErr("error parsing incoming member list", err)
 	}
 
 	// Update current members and send a connection request to all of them,
@@ -59,9 +59,9 @@ func (n *Node) connect(entryPoint *peer.Peer) error {
 	for _, member := range receivedMembers.Peers() {
 		if !n.Self.Equal(member) {
 			if req, err := msg.GetRequest(member.Hostname()); err != nil {
-				return ParseErr("error decoding request to message", err, msg)
+				return ParseErr("error decoding request to message", err)
 			} else if _, err := n.client.Do(req); err != nil {
-				return ConnErr("error trying to perform the request", err, msg)
+				return ConnErr("error trying to perform the request", err)
 			}
 
 			n.Members.Append(member)
@@ -79,10 +79,10 @@ func (n *Node) connect(entryPoint *peer.Peer) error {
 // disconnect function perform a graceful disconnection, warning to other
 // network members about the disconnection and deleting registered peers from
 // current member list.
-func (n *Node) disconnect() error {
+func (n *Node) disconnect() *NodeErr {
 	// Send an error to Node.Error channel if the node is not connected
 	if !n.IsConnected() {
-		return ConnErr("node not connected", nil, nil)
+		return ConnErr("node not connected", nil)
 	}
 
 	// Warn to other network peers about the disconnection
@@ -100,19 +100,19 @@ func (n *Node) disconnect() error {
 // broadcast function sends the message provided to every peer registered on the
 // node network. It iterates over current network peers performing a
 // http.Request from the message provided.
-func (n *Node) broadcast(msg *message.Message) error {
+func (n *Node) broadcast(msg *message.Message) *NodeErr {
 	// Send an error to Node.Error channel if the node is not connected
 	if !n.IsConnected() {
-		return ConnErr("node not connected", nil, nil)
+		return ConnErr("node not connected", nil)
 	}
 
 	// Iterate over each member encoding as a request and performing it with
 	// the provided Message.
 	for _, member := range n.Members.Peers() {
 		if req, err := msg.GetRequest(member.Hostname()); err != nil {
-			return ParseErr("error decoding request to message", err, msg)
+			return ParseErr("error decoding request to message", err)
 		} else if _, err := n.client.Do(req); err != nil {
-			return ConnErr("error trying to perform the request", err, msg)
+			return ConnErr("error trying to perform the request", err)
 		}
 	}
 

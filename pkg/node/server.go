@@ -23,15 +23,15 @@ func (n *Node) startListening() {
 	err := n.server.ListenAndServe()
 
 	// If something was wrong, except the server is cosed, handle the error.
-	if err != nil && err != http.ErrServerClosed {
-		n.Error <- InternalErr("error listening for HTTP requests", err, nil)
-
+	if err != nil {
 		// If the current node was connected, update status to disconnected and
 		// close the channel.
 		if n.IsConnected() {
 			n.Members = peer.NewMembers()
 			n.setConnected(false)
 		}
+
+		n.Error <- InternalErr("error listening for HTTP requests", err)
 	}
 }
 
@@ -69,7 +69,7 @@ func (n *Node) handleRequest() func(http.ResponseWriter, *http.Request) {
 			responseBody, err := n.Members.ToJSON()
 			if err != nil {
 				errMsg := "error encoding members to JSON"
-				n.Error <- ParseErr(errMsg, err, msg)
+				n.Error <- ParseErr(errMsg, err)
 				http.Error(w, errMsg, http.StatusInternalServerError)
 				return
 			}

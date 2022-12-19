@@ -36,7 +36,7 @@ type Node struct {
 	Members *peer.Members // thread-safe list of peers on the network
 
 	Inbox chan *message.Message // readable channels to receive messages
-	Error chan error            // readable channels to receive errors
+	Error chan *NodeErr         // readable channels to receive errors
 
 	Connection chan *peer.Peer       // writtable channel to connect to a Peer
 	Outbox     chan *message.Message // writtable channel to send messages
@@ -48,6 +48,7 @@ type Node struct {
 	cancel context.CancelFunc
 	client *http.Client
 	server *http.Server
+	waiter *sync.WaitGroup
 }
 
 // New function create a Node associated to the peer provided as argument.
@@ -59,15 +60,16 @@ func New(self *peer.Peer) *Node {
 		Connection: make(chan *peer.Peer),
 		Inbox:      make(chan *message.Message),
 		Outbox:     make(chan *message.Message),
-		Error:      make(chan error),
+		Error:      make(chan *NodeErr),
 
 		connected: false,
 		connMtx:   &sync.Mutex{},
 
-		ctx:    ctx,
-		cancel: cancel,
+		ctx:    ctx,    // Initialize as nil to know if the the node is started
+		cancel: cancel, // Initialize as nil to know if the the node is started
+		server: nil,    // Initialize as nil to know if the the node is started
 		client: &http.Client{},
-		server: &http.Server{Addr: self.String()},
+		waiter: &sync.WaitGroup{},
 	}
 }
 
@@ -75,12 +77,17 @@ func New(self *peer.Peer) *Node {
 // requests and the second one to handle user actions listening to defined
 // channels.
 func (n *Node) Start() {
+	// Initialize the current node server
+	n.server = &http.Server{Addr: n.Self.String()}
+
 	// Start HTTP server to listen to other network peers requests.
 	go n.startListening()
 
 	// Increase the counter of the current node WaitGroup to wait for the
 	// following goroutine.
+	n.waiter.Add(1)
 	go func() {
+		defer n.waiter.Done()
 		// For loop handling the node chanlles looking for new connection,
 		// disconection or send message requests, until the context will be
 		// canceled.
@@ -127,6 +134,11 @@ func (n *Node) IsConnected() bool {
 // Stop function disconnect the node from the network, stop other goroutines
 // and close the node channels.
 func (n *Node) Stop() error {
+	// If the current node is not started return error
+	if n.server == nil {
+		return InternalErr("current node not started", nil)
+	}
+
 	// If the node is connected, disconnect from the network
 	if n.IsConnected() {
 		if err := n.disconnect(); err != nil {
@@ -136,14 +148,26 @@ func (n *Node) Stop() error {
 
 	// Shutdown the HTTP server
 	if err := n.server.Shutdown(n.ctx); err != nil {
-		return InternalErr("error shuting down the HTTP server", err, nil)
+		return InternalErr("error shutting down the HTTP server", err)
 	}
 
 	// Stop channels for-loop and close the channels
 	n.cancel()
-	close(n.Inbox)
-	close(n.Error)
-	close(n.Outbox)
-	close(n.Connection)
+	n.waiter.Wait()
+
+	safeClose(n.Inbox)
+	safeClose(n.Outbox)
+	safeClose(n.Connection)
+	safeClose(n.Error)
+	n.server = nil
 	return nil
+}
+
+func safeClose[C *message.Message | *peer.Peer | *NodeErr](ch chan C) {
+	select {
+	case <-ch:
+		close(ch)
+		return
+	default:
+	}
 }

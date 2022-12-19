@@ -4,33 +4,30 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 	"testing"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/lucasmenendez/gop2p/pkg/message"
-	"github.com/lucasmenendez/gop2p/pkg/peer"
 )
-
-var httpClient = &http.Client{}
 
 func Test_startListening(t *testing.T) {
 	c := qt.New(t)
 
-	me, _ := peer.Me(5001, false)
-	msg := new(message.Message).SetType(message.ConnectType).SetFrom(me)
-	entryPoint, _ := peer.Me(5002, false)
-	req, _ := msg.GetRequest(entryPoint.Hostname())
-
+	srv := initNode(t, getRandomPort())
 	t.Run("request to non existing server", func(t *testing.T) {
+		req := prepareRequest(t, message.ConnectType, srv.Self.Port, getRandomPort(), nil)
 		_, err := httpClient.Do(req)
 		c.Assert(err, qt.IsNotNil)
 		c.Assert(err, qt.ErrorMatches, "(.*)connection refused(.*)")
 	})
 
-	srv := New(entryPoint)
-	go srv.startListening()
-
 	t.Run("request to started server", func(t *testing.T) {
+		srv.server = &http.Server{Addr: srv.Self.String()}
+		go srv.startListening()
+
+		req := prepareRequest(t, message.ConnectType, srv.Self.Port, getRandomPort(), nil)
+
 		res, err := httpClient.Do(req)
 		c.Assert(err, qt.IsNil)
 		_, err = io.ReadAll(res.Body)
@@ -42,27 +39,33 @@ func Test_startListening(t *testing.T) {
 		c.Assert(err, qt.IsNil)
 	})
 
-	newSrv := New(entryPoint)
 	t.Run("start a server with already started server info", func(t *testing.T) {
+		newSrv := initNode(t, srv.Self.Port)
+
+		wg := &sync.WaitGroup{}
+		wg.Add(1)
 		go func() {
-			err := <-newSrv.Error
-			c.Assert(err, qt.IsNotNil)
-			c.Assert(err, qt.ErrorAs, new(*NodeErr))
-			c.Assert((err.(*NodeErr)).ErrCode, qt.Equals, INTERNAL_ERR)
+			for err := range newSrv.Error {
+				c.Assert(err, qt.IsNotNil)
+				c.Assert(err, qt.ErrorAs, new(*NodeErr))
+				c.Assert(err.ErrCode, qt.Equals, INTERNAL_ERR)
+				wg.Done()
+			}
 		}()
-		newSrv.startListening()
+		newSrv.server = &http.Server{Addr: newSrv.Self.String()}
+		go newSrv.startListening()
+		wg.Wait()
 	})
 }
 
 func Test_handleRequest(t *testing.T) {
 	c := qt.New(t)
 
-	me, _ := peer.Me(5001, false)
-	srv := New(me)
-	srv.Start()
-
 	t.Run("invalid request method", func(t *testing.T) {
-		req, _ := http.NewRequest(http.MethodPut, me.Hostname(), nil)
+		srv := initNode(t, getRandomPort())
+		srv.Start()
+
+		req, _ := http.NewRequest(http.MethodPut, srv.Self.Hostname(), nil)
 		res, err := httpClient.Do(req)
 		c.Assert(err, qt.IsNil)
 		c.Assert(res.StatusCode, qt.Equals, http.StatusBadRequest)
@@ -70,12 +73,14 @@ func Test_handleRequest(t *testing.T) {
 	// invalid connection request (invalid json)
 
 	t.Run("invalid requests", func(t *testing.T) {
-		req, _ := http.NewRequest(http.MethodGet, me.Hostname(), nil)
+		srv := initNode(t, getRandomPort())
+		srv.Start()
+		req, _ := http.NewRequest(http.MethodGet, srv.Self.Hostname(), nil)
 		res, err := httpClient.Do(req)
 		c.Assert(err, qt.IsNil)
 		c.Assert(res.StatusCode, qt.Equals, http.StatusBadRequest)
 
-		req, _ = http.NewRequest(http.MethodDelete, me.Hostname(), nil)
+		req, _ = http.NewRequest(http.MethodDelete, srv.Self.Hostname(), nil)
 		res, err = httpClient.Do(req)
 		c.Assert(err, qt.IsNil)
 		c.Assert(res.StatusCode, qt.Equals, http.StatusBadRequest)
@@ -83,10 +88,11 @@ func Test_handleRequest(t *testing.T) {
 
 	// valid requests (connect, disconnect, message)
 	t.Run("valid requests", func(t *testing.T) {
-		p, _ := peer.Me(5002, false)
+		srv := initNode(t, getRandomPort())
+		srv.Start()
 
-		msg := new(message.Message).SetFrom(p).SetType(message.ConnectType)
-		req, _ := msg.GetRequest(me.Hostname())
+		firstPort := getRandomPort()
+		req := prepareRequest(t, message.ConnectType, srv.Self.Port, firstPort, nil)
 		res, err := httpClient.Do(req)
 		c.Assert(err, qt.IsNil)
 		c.Assert(res.StatusCode, qt.Equals, http.StatusOK)
@@ -96,12 +102,14 @@ func Test_handleRequest(t *testing.T) {
 		res.Body.Close()
 		c.Assert(body, qt.DeepEquals, []byte("[]"))
 
+		req = prepareRequest(t, message.ConnectType, srv.Self.Port, getRandomPort(), nil)
 		res, err = httpClient.Do(req)
 		c.Assert(err, qt.IsNil)
 		c.Assert(res.StatusCode, qt.Equals, http.StatusOK)
+
 		body, err = io.ReadAll(res.Body)
 		c.Assert(err, qt.IsNil)
 		res.Body.Close()
-		c.Assert(body, qt.DeepEquals, []byte("[{\"port\":"+fmt.Sprint(p.Port)+",\"address\":\""+p.Address+"\"}]"))
+		c.Assert(body, qt.DeepEquals, []byte("[{\"port\":"+fmt.Sprint(firstPort)+",\"address\":\"localhost\"}]"))
 	})
 }

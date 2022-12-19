@@ -4,9 +4,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/http/httptest"
-	"net/url"
-	"strconv"
 	"testing"
 	"time"
 
@@ -14,16 +11,6 @@ import (
 	"github.com/lucasmenendez/gop2p/pkg/message"
 	"github.com/lucasmenendez/gop2p/pkg/peer"
 )
-
-func testServer(h func(http.ResponseWriter, *http.Request)) (*httptest.Server, int) {
-	handler := http.NewServeMux()
-	handler.HandleFunc("/", h)
-	srv := httptest.NewServer(handler)
-
-	srvData, _ := url.Parse(srv.URL)
-	port, _ := strconv.Atoi(srvData.Port())
-	return srv, port
-}
 
 func Test_setConnected(t *testing.T) {
 	c := qt.New(t)
@@ -66,7 +53,7 @@ func Test_connect(t *testing.T) {
 			err := <-client.Error
 			c.Assert(err, qt.IsNotNil)
 			c.Assert(err, qt.ErrorAs, new(*NodeErr))
-			c.Assert((err.(*NodeErr)).ErrCode, qt.Equals, CONNECTION_ERR)
+			c.Assert(err.ErrCode, qt.Equals, CONNECTION_ERR)
 		}()
 		client.connect(entryPoint)
 	})
@@ -84,7 +71,7 @@ func Test_connect(t *testing.T) {
 			err := <-client.Error
 			c.Assert(err, qt.IsNotNil)
 			c.Assert(err, qt.ErrorAs, new(*NodeErr))
-			c.Assert((err.(*NodeErr)).ErrCode, qt.Equals, CONNECTION_ERR)
+			c.Assert(err.ErrCode, qt.Equals, CONNECTION_ERR)
 		}()
 		client.connect(entryPoint)
 	})
@@ -114,7 +101,7 @@ func Test_disconnect(t *testing.T) {
 			err := <-client.Error
 			c.Assert(err, qt.IsNotNil)
 			c.Assert(err, qt.ErrorAs, new(*NodeErr))
-			c.Assert((err.(*NodeErr)).ErrCode, qt.Equals, CONNECTION_ERR)
+			c.Assert(err.ErrCode, qt.Equals, CONNECTION_ERR)
 		}()
 		client.disconnect()
 	})
@@ -167,7 +154,7 @@ func Test_broadcast(t *testing.T) {
 			err := <-client.Error
 			c.Assert(err, qt.IsNotNil)
 			c.Assert(err, qt.ErrorAs, new(*NodeErr))
-			c.Assert((err.(*NodeErr)).ErrCode, qt.Equals, CONNECTION_ERR)
+			c.Assert(err.ErrCode, qt.Equals, CONNECTION_ERR)
 		}()
 
 		msg := new(message.Message).SetFrom(me).SetData(expMsg)

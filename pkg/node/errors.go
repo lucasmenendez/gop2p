@@ -2,8 +2,6 @@ package node
 
 import (
 	"fmt"
-
-	"github.com/lucasmenendez/gop2p/pkg/message"
 )
 
 const (
@@ -16,7 +14,6 @@ type NodeErr struct {
 	ErrCode int
 	Text    string
 	Trace   error
-	Message *message.Message
 }
 
 func (err *NodeErr) Error() string {
@@ -28,9 +25,6 @@ func (err *NodeErr) Error() string {
 	}
 
 	text := err.Text
-	if err.Message != nil {
-		text = fmt.Sprintf("%s (msg %s)", text, err.Message.String())
-	}
 
 	if err.Trace != nil {
 		text = fmt.Sprintf("%s: %v", text, err.Trace)
@@ -39,14 +33,14 @@ func (err *NodeErr) Error() string {
 	return fmt.Sprintf("%s: %s", tag, text)
 }
 
-func ConnErr(text string, err error, msg *message.Message) *NodeErr {
-	return &NodeErr{CONNECTION_ERR, text, err, msg}
+func ConnErr(text string, err error) *NodeErr {
+	return &NodeErr{CONNECTION_ERR, text, err}
 }
 
-func ParseErr(text string, err error, msg *message.Message) *NodeErr {
-	return &NodeErr{PARSING_ERR, text, err, msg}
+func ParseErr(text string, err error) *NodeErr {
+	return &NodeErr{PARSING_ERR, text, err}
 }
 
-func InternalErr(text string, err error, msg *message.Message) *NodeErr {
-	return &NodeErr{INTERNAL_ERR, text, err, msg}
+func InternalErr(text string, err error) *NodeErr {
+	return &NodeErr{INTERNAL_ERR, text, err}
 }
