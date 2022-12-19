@@ -33,7 +33,7 @@ The main component to use gop2p is the `node.Node` struct, that contains:
     }
 ```
 
- * Required _functions_ to **create**, **start** and **stop** a [`nod.Node`:
+ * Required _functions_ to **create**, **start** and **stop** a `node.Node`:
 
 ```go
     func New(self *peer.Peer) *Node {
@@ -83,6 +83,8 @@ func main() {
 
 ```
 </details>
+
+<div id="step-2"></div>
 
 #### 2. Connect to a network and listen fo `message.Message` or `error`s
 To connect to a network you must know the `peer.Peer` information of an entrypoint. Use `node.Node.Connection` channel to connect to it, the `node.Node.Inbox` channel to listen for messages and the `node.Node.Error` channel to listen for errors.
@@ -166,7 +168,7 @@ func main() {
 </details>
 
 #### 4. Disconnect from the network 
-To disconnect from the current network (if the client is already connected to one), the `node.Connection` channel must be closed. The client `node.Node` broadcast a disconnection request to every network `pee.Peer`. The `node.Node` associated to every `pee.Peer`, updates its current network member list unregistering the current `pee.Peer`. At this moment, the current `node.Node` could connect to other network in any moment (see [step 2](#2-connect-to-a-network-and-listen-for-messages-or-errors)).
+To disconnect from the current network (if the client is already connected to one), the `node.Connection` channel must be closed. The client `node.Node` broadcast a disconnection request to every network `pee.Peer`. The `node.Node` associated to every `pee.Peer`, updates its current network member list unregistering the current `pee.Peer`. At this moment, the current `node.Node` could connect to other network in any moment (see [step 2](#step-2)).
 
 <details>
 <summary style="padding-left: 5vh">Show a code example</summary>
