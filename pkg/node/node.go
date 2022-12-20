@@ -151,10 +151,11 @@ func (n *Node) Stop() error {
 		return InternalErr("error shutting down the HTTP server", err)
 	}
 
-	// Stop channels for-loop and close the channels
+	// Cancel context that stops the start-loop and wait until finish
 	n.cancel()
 	n.waiter.Wait()
 
+	//  close the channels safely and assign nil to current server
 	safeClose(n.Inbox)
 	safeClose(n.Outbox)
 	safeClose(n.Connection)
@@ -163,6 +164,8 @@ func (n *Node) Stop() error {
 	return nil
 }
 
+// safeClose function allows closing gracefully any Node channel avoiding
+// closing a non-opened channel.
 func safeClose[C *message.Message | *peer.Peer | *NodeErr](ch chan C) {
 	select {
 	case <-ch:
