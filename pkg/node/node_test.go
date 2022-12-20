@@ -37,7 +37,7 @@ func TestNodeStart(t *testing.T) {
 	c.Assert(n.Members.Contains(p), qt.IsTrue)
 
 	// Prepare a plain message to emulate broadcast
-	req = prepareRequest(t, message.PlainType, n.Self.Port, p.Port, []byte("test"))
+	req = prepareRequest(t, message.BroadcastType, n.Self.Port, p.Port, []byte("test"))
 
 	// Start a goroutine to handle new messages with a wait group associated
 	wg := &sync.WaitGroup{}

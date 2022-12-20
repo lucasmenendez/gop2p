@@ -18,7 +18,8 @@ import (
 const (
 	ConnectType    = iota
 	DisconnectType = iota
-	PlainType      = iota
+	BroadcastType  = iota
+	DirectType     = iota
 )
 
 // addressHeader contains default http header key that contains address.
@@ -34,14 +35,15 @@ type Message struct {
 	Type int
 	Data []byte
 	From *peer.Peer
+	To   *peer.Peer
 }
 
 // SetType function sets the type of the current message to the provided one,
 // and returns this current message. By default, the type of a message will be
-// PlainType, unless other valid type has been provided by argument.
+// BroadcastType, unless other valid type has been provided by argument.
 func (msg *Message) SetType(t int) *Message {
-	msg.Type = PlainType
-	if t == ConnectType || t == DisconnectType {
+	msg.Type = BroadcastType
+	if t == ConnectType || t == DisconnectType || t == DirectType {
 		msg.Type = t
 	}
 
@@ -55,10 +57,17 @@ func (msg *Message) SetFrom(from *peer.Peer) *Message {
 	return msg
 }
 
+// SetTo function sets the provided peer as the peer for which the current
+// message is intended and returns it as result.
+func (msg *Message) SetTo(to *peer.Peer) *Message {
+	msg.To = to
+	return msg
+}
+
 // SetData function sets the provided data as the data of the current message
 // and returns it as result.
 func (msg *Message) SetData(data []byte) *Message {
-	msg.Type = PlainType
+	msg.Type = BroadcastType
 	msg.Data = data
 	return msg
 }
@@ -109,7 +118,7 @@ func (msg *Message) GetRequest(uri string) (*http.Request, error) {
 func (msg *Message) FromRequest(req *http.Request) *Message {
 	// Decodes the message by the method of the request, by default
 	// PlainMessage.
-	if msg.Type = PlainType; req.Method == http.MethodGet {
+	if msg.Type = BroadcastType; req.Method == http.MethodGet {
 		msg.Type = ConnectType
 	} else if req.Method == http.MethodDelete {
 		msg.Type = DisconnectType
@@ -128,7 +137,7 @@ func (msg *Message) FromRequest(req *http.Request) *Message {
 
 	// If the message type is PlainMessage, read the request body as message
 	// data
-	if msg.Type == PlainType {
+	if msg.Type == BroadcastType {
 		msg.Data, _ = io.ReadAll(req.Body)
 	}
 

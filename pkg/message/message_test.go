@@ -20,11 +20,11 @@ func TestMessageSetType(t *testing.T) {
 	msg.SetType(DisconnectType)
 	c.Assert(msg.Type, qt.Equals, DisconnectType)
 
-	msg.SetType(PlainType)
-	c.Assert(msg.Type, qt.Equals, PlainType)
+	msg.SetType(BroadcastType)
+	c.Assert(msg.Type, qt.Equals, BroadcastType)
 
 	msg.SetType(-1)
-	c.Assert(msg.Type, qt.Equals, PlainType)
+	c.Assert(msg.Type, qt.Equals, BroadcastType)
 }
 
 func TestMessageSetFrom(t *testing.T) {
@@ -40,6 +40,19 @@ func TestMessageSetFrom(t *testing.T) {
 	c.Assert(msg.From, qt.DeepEquals, expected)
 }
 
+func TestMessageSetTo(t *testing.T) {
+	c := qt.New(t)
+
+	expected := &peer.Peer{Address: "localhost", Port: 8080}
+	msg := new(Message).SetTo(expected)
+	c.Assert(msg.To, qt.DeepEquals, expected)
+
+	expected.Address = "0.0.0.0"
+	expected.Port = 8081
+	msg.SetTo(expected)
+	c.Assert(msg.To, qt.DeepEquals, expected)
+}
+
 func TestMessageSetData(t *testing.T) {
 	c := qt.New(t)
 
@@ -48,7 +61,7 @@ func TestMessageSetData(t *testing.T) {
 	msg.SetData(data)
 
 	c.Assert(msg.Data, qt.DeepEquals, data)
-	c.Assert(msg.Type, qt.Equals, PlainType)
+	c.Assert(msg.Type, qt.Equals, BroadcastType)
 }
 
 func TestMessageGetRequest(t *testing.T) {

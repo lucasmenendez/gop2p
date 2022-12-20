@@ -89,7 +89,7 @@ func (n *Node) handleRequest() func(http.ResponseWriter, *http.Request) {
 			// Send the current member list JSON to the connected peer
 			w.Header().Set("Content-Type", "text/plain")
 			w.Write(responseBody)
-		case message.PlainType:
+		case message.BroadcastType:
 			// When plain message is received it will be redirected to the inbox
 			// messages channel where the user will be waiting for read it.
 			n.Inbox <- msg

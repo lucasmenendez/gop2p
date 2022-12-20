@@ -118,7 +118,7 @@ func Test_handleRequest(t *testing.T) {
 		srv.Start()
 		peerPort := getRandomPort()
 
-		req := prepareRequest(t, message.PlainType, srv.Self.Port, peerPort, nil)
+		req := prepareRequest(t, message.BroadcastType, srv.Self.Port, peerPort, nil)
 		res, err := httpClient.Do(req)
 		c.Assert(err, qt.IsNil)
 		c.Assert(res.StatusCode, qt.Equals, http.StatusForbidden)
