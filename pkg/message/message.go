@@ -1,8 +1,8 @@
 // message package provide an abstraction of the data that is transferred by
 // peers in the network. Currently three types of messages available:
-// connection, disconnection and plain message. The package provide a group of
-// functions associated to the messages for common tasks as message creation,
-// serialization and deserialization.
+// connection, disconnection, broadcas and direct message. The package provide a
+// group of functions associated to the messages for common tasks as message
+// creation, serialization and deserialization.
 package message
 
 import (
@@ -16,10 +16,17 @@ import (
 )
 
 const (
-	ConnectType    = iota
+	// ConnectType identifies a connection message that allows to connect to a
+	// network
+	ConnectType = iota
+	// DisconnectType identifies a disconnection message that report a peer
+	// disconnection to the current network peers
 	DisconnectType = iota
-	BroadcastType  = iota
-	DirectType     = iota
+	// BroadcastType identifies a message for the entire network
+	BroadcastType = iota
+	// DirectType identifies a message that is intended for a single network
+	// peer (such as direct message).
+	DirectType = iota
 )
 
 // addressHeader contains default http header key that contains address.
@@ -29,7 +36,7 @@ const addressHeader string = "PEER_ADDRESS"
 const portHeader string = "PEER_PORT"
 
 // Message struct includes the content of a Message and it is transferred
-// between peers. It contains its type as integer (checout the default types),
+// between peers. It contains its type as integer (checkout defined types),
 // the information about the message sender and the content of the message.
 type Message struct {
 	Type int
@@ -91,7 +98,8 @@ func (msg *Message) GetRequest(uri string) (*http.Request, error) {
 
 	// Set the correct method based on message type. The connection message
 	// will be "GET" method, the disconnection message will be the "DELETE"
-	// method and the plain message will be "POST".
+	// method, the broadcast message will be "POST" and the direct message will
+	// be "PUT".
 	method := http.MethodPost
 	if msg.Type == ConnectType {
 		method = http.MethodGet
@@ -120,7 +128,7 @@ func (msg *Message) GetRequest(uri string) (*http.Request, error) {
 // too.
 func (msg *Message) FromRequest(req *http.Request) *Message {
 	// Decodes the message by the method of the request, by default
-	// PlainMessage.
+	// BroadcastType.
 	if msg.Type = BroadcastType; req.Method == http.MethodGet {
 		msg.Type = ConnectType
 	} else if req.Method == http.MethodDelete {
@@ -140,9 +148,9 @@ func (msg *Message) FromRequest(req *http.Request) *Message {
 		}
 	}
 
-	// If the message type is PlainMessage, read the request body as message
-	// data
-	if msg.Type == BroadcastType {
+	// If the message type is BroadcastType or DirectType, read the request body
+	// as message data
+	if msg.Type == BroadcastType || msg.Type == DirectType {
 		msg.Data, _ = io.ReadAll(req.Body)
 	}
 

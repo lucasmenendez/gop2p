@@ -89,9 +89,10 @@ func (n *Node) handleRequest() func(http.ResponseWriter, *http.Request) {
 			// Send the current member list JSON to the connected peer
 			w.Header().Set("Content-Type", "text/plain")
 			w.Write(responseBody)
-		case message.BroadcastType:
-			// When plain message is received it will be redirected to the inbox
-			// messages channel where the user will be waiting for read it.
+		case message.BroadcastType, message.DirectType:
+			// When broadcast or direct message is received it will be redirected
+			// to the inbox messages channel where the user will be waiting for
+			// read it.
 			n.Inbox <- msg
 		case message.DisconnectType:
 			// disconnected function deletes the message peer from the current
