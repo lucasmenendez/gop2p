@@ -60,6 +60,7 @@ func (msg *Message) SetFrom(from *peer.Peer) *Message {
 // SetTo function sets the provided peer as the peer for which the current
 // message is intended and returns it as result.
 func (msg *Message) SetTo(to *peer.Peer) *Message {
+	msg.Type = DirectType
 	msg.To = to
 	return msg
 }
@@ -96,6 +97,8 @@ func (msg *Message) GetRequest(uri string) (*http.Request, error) {
 		method = http.MethodGet
 	} else if msg.Type == DisconnectType {
 		method = http.MethodDelete
+	} else if msg.Type == DirectType {
+		method = http.MethodPut
 	}
 
 	// Create a buffer with the message data and creates the request with the
@@ -122,6 +125,8 @@ func (msg *Message) FromRequest(req *http.Request) *Message {
 		msg.Type = ConnectType
 	} else if req.Method == http.MethodDelete {
 		msg.Type = DisconnectType
+	} else if req.Method == http.MethodPut {
+		msg.Type = DirectType
 	}
 
 	// Decodes the peer information from the http.Header's.

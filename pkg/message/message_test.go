@@ -23,6 +23,9 @@ func TestMessageSetType(t *testing.T) {
 	msg.SetType(BroadcastType)
 	c.Assert(msg.Type, qt.Equals, BroadcastType)
 
+	msg.SetType(DirectType)
+	c.Assert(msg.Type, qt.Equals, DirectType)
+
 	msg.SetType(-1)
 	c.Assert(msg.Type, qt.Equals, BroadcastType)
 }
@@ -46,11 +49,14 @@ func TestMessageSetTo(t *testing.T) {
 	expected := &peer.Peer{Address: "localhost", Port: 8080}
 	msg := new(Message).SetTo(expected)
 	c.Assert(msg.To, qt.DeepEquals, expected)
+	c.Assert(msg.Type, qt.DeepEquals, DirectType)
 
 	expected.Address = "0.0.0.0"
 	expected.Port = 8081
+	msg.SetType(BroadcastType)
 	msg.SetTo(expected)
 	c.Assert(msg.To, qt.DeepEquals, expected)
+	c.Assert(msg.Type, qt.DeepEquals, DirectType)
 }
 
 func TestMessageSetData(t *testing.T) {
