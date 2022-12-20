@@ -116,10 +116,15 @@ func Test_handleRequest(t *testing.T) {
 	t.Run("plain message from external peer", func(t *testing.T) {
 		srv := initNode(t, getRandomPort())
 		srv.Start()
+		peerPort := getRandomPort()
 
-		req := prepareRequest(t, message.PlainType, srv.Self.Port, getRandomPort(), nil)
-
+		req := prepareRequest(t, message.PlainType, srv.Self.Port, peerPort, nil)
 		res, err := httpClient.Do(req)
+		c.Assert(err, qt.IsNil)
+		c.Assert(res.StatusCode, qt.Equals, http.StatusForbidden)
+
+		req = prepareRequest(t, message.DisconnectType, srv.Self.Port, peerPort, nil)
+		res, err = httpClient.Do(req)
 		c.Assert(err, qt.IsNil)
 		c.Assert(res.StatusCode, qt.Equals, http.StatusForbidden)
 	})
