@@ -15,6 +15,7 @@ func Test_startListening(t *testing.T) {
 	c := qt.New(t)
 
 	srv := initNode(t, getRandomPort())
+
 	t.Run("request to non existing server", func(t *testing.T) {
 		req := prepareRequest(t, message.ConnectType, srv.Self.Port, getRandomPort(), nil)
 		_, err := httpClient.Do(req)
@@ -75,6 +76,7 @@ func Test_handleRequest(t *testing.T) {
 	t.Run("invalid requests", func(t *testing.T) {
 		srv := initNode(t, getRandomPort())
 		srv.Start()
+
 		req, _ := http.NewRequest(http.MethodGet, srv.Self.Hostname(), nil)
 		res, err := httpClient.Do(req)
 		c.Assert(err, qt.IsNil)
@@ -99,7 +101,6 @@ func Test_handleRequest(t *testing.T) {
 
 		body, err := io.ReadAll(res.Body)
 		c.Assert(err, qt.IsNil)
-		res.Body.Close()
 		c.Assert(body, qt.DeepEquals, []byte("[]"))
 
 		req = prepareRequest(t, message.ConnectType, srv.Self.Port, getRandomPort(), nil)
@@ -109,7 +110,17 @@ func Test_handleRequest(t *testing.T) {
 
 		body, err = io.ReadAll(res.Body)
 		c.Assert(err, qt.IsNil)
-		res.Body.Close()
 		c.Assert(body, qt.DeepEquals, []byte("[{\"port\":"+fmt.Sprint(firstPort)+",\"address\":\"localhost\"}]"))
+	})
+
+	t.Run("plain message from external peer", func(t *testing.T) {
+		srv := initNode(t, getRandomPort())
+		srv.Start()
+
+		req := prepareRequest(t, message.PlainType, srv.Self.Port, getRandomPort(), nil)
+
+		res, err := httpClient.Do(req)
+		c.Assert(err, qt.IsNil)
+		c.Assert(res.StatusCode, qt.Equals, http.StatusForbidden)
 	})
 }

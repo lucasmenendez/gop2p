@@ -85,6 +85,13 @@ func (n *Node) handleRequest() func(http.ResponseWriter, *http.Request) {
 		case message.PlainType:
 			// When plain message is received it will be redirected to the inbox
 			// messages channel where the user will be waiting for read it.
+			if !n.Members.Contains(msg.From) {
+				// If the message peer is not a registered member of the current
+				// network, return a forbidden HTTP error.
+				errMsg := "not registered peer, try to connect first"
+				http.Error(w, errMsg, http.StatusForbidden)
+				return
+			}
 			n.Inbox <- msg
 		case message.DisconnectType:
 			// disconnected function deletes the message peer from the current
