@@ -48,6 +48,9 @@ func prepareRequest(t *testing.T, reqType, to, from int, data []byte) *http.Requ
 	msg := new(message.Message).SetFrom(fromPeer).SetType(reqType)
 	if reqType == message.BroadcastType {
 		msg.SetData(data)
+	} else if reqType == message.DirectType {
+		msg.SetData(data)
+		msg.SetTo(toPeer)
 	}
 
 	req, err := msg.GetRequest(toPeer.Hostname())

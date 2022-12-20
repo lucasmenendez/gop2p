@@ -9,6 +9,7 @@ import (
 
 	qt "github.com/frankban/quicktest"
 	"github.com/lucasmenendez/gop2p/pkg/message"
+	"github.com/lucasmenendez/gop2p/pkg/peer"
 )
 
 func Test_startListening(t *testing.T) {
@@ -103,7 +104,7 @@ func Test_handleRequest(t *testing.T) {
 		c.Assert(err, qt.IsNil)
 		c.Assert(body, qt.DeepEquals, []byte("[]"))
 
-		req = prepareRequest(t, message.ConnectType, srv.Self.Port, getRandomPort(), nil)
+		req = prepareRequest(t, message.ConnectType, srv.Self.Port, firstPort, nil)
 		res, err = httpClient.Do(req)
 		c.Assert(err, qt.IsNil)
 		c.Assert(res.StatusCode, qt.Equals, http.StatusOK)
@@ -111,6 +112,46 @@ func Test_handleRequest(t *testing.T) {
 		body, err = io.ReadAll(res.Body)
 		c.Assert(err, qt.IsNil)
 		c.Assert(body, qt.DeepEquals, []byte("[{\"port\":"+fmt.Sprint(firstPort)+",\"address\":\"localhost\"}]"))
+	})
+
+	t.Run("broadcast and direct message", func(t *testing.T) {
+		srv := initNode(t, getRandomPort())
+		srv.Start()
+		p, _ := peer.Me(getRandomPort(), false)
+		srv.Members.Append(p)
+
+		broadcastData, directData := []byte("public"), []byte("private")
+		waiter := make(chan bool)
+		go func() {
+			for msg := range srv.Inbox {
+				c.Assert(msg.Data, qt.DeepEquals, broadcastData)
+				c.Assert(msg.Type, qt.Equals, message.BroadcastType)
+				break
+			}
+			close(waiter)
+		}()
+
+		req := prepareRequest(t, message.BroadcastType, srv.Self.Port, p.Port, broadcastData)
+		res, err := httpClient.Do(req)
+		c.Assert(err, qt.IsNil)
+		c.Assert(res.StatusCode, qt.Equals, http.StatusOK)
+		<-waiter
+
+		waiter = make(chan bool)
+		go func() {
+			for msg := range srv.Inbox {
+				c.Assert(msg.Data, qt.DeepEquals, directData)
+				c.Assert(msg.Type, qt.Equals, message.DirectType)
+				break
+			}
+			close(waiter)
+		}()
+
+		req = prepareRequest(t, message.DirectType, srv.Self.Port, p.Port, directData)
+		res, err = httpClient.Do(req)
+		c.Assert(err, qt.IsNil)
+		c.Assert(res.StatusCode, qt.Equals, http.StatusOK)
+		<-waiter
 	})
 
 	t.Run("plain message from external peer", func(t *testing.T) {
