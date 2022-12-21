@@ -168,7 +168,40 @@ func main() {
 ```
 </details>
 
-#### 4. Disconnect from the network 
+#### 4. Send a direct `message.Message` to a single peer
+To send data to a single peer network, it must be wrapped using `message.Message` and its `Message.SetTo` function, and the result must be sended using the `node.Outbox` channel.
+
+<details>
+<summary style="padding-left: 5vh">Show a code example</summary>
+
+```go
+package main
+
+import (
+	"log"
+
+	"github.com/lucasmenendez/gop2p/pkg/node"
+	"github.com/lucasmenendez/gop2p/pkg/message"
+	"github.com/lucasmenendez/gop2p/pkg/peer"
+)
+
+func main() {
+    // ...
+
+    // Create a []byte message
+    data := []byte("Hello network!")
+    // Create a message with Node.Self information as sender, the created data 
+    // and de intended peer.
+    msg := new(message.Message).SetFrom(client.Self).SetData(data).SetTo(entryPoint)
+    // Send the message to defined peer putting it into the Node.Outbox channel
+    client.Outbox <- msg
+
+    // ...
+}
+```
+</details>
+
+#### 5. Disconnect from the network 
 To disconnect from the current network (if the client is already connected to one), the `node.Connection` channel must be closed. The client `node.Node` broadcast a disconnection request to every network `pee.Peer`. The `node.Node` associated to every `pee.Peer`, updates its current network member list unregistering the current `pee.Peer`. At this moment, the current `node.Node` could connect to other network in any moment (see [step 2](#step-2)).
 
 <details>
@@ -197,7 +230,7 @@ func main() {
 
 </details>
 
-#### 5. Stop the `node.Node`
+#### 6. Stop the `node.Node`
 To stop the current `node.Node` the function `node.Stop` must be executed. This will also disconnect the current `node.Node` from a network, if it is connected. The function close every channel, stops the HTTP server to stop listening for other `peer.Peer`s requests and stop waiting indifinitely.
 
 <details>

@@ -75,7 +75,9 @@ func (msg *Message) SetTo(to *peer.Peer) *Message {
 // SetData function sets the provided data as the data of the current message
 // and returns it as result.
 func (msg *Message) SetData(data []byte) *Message {
-	msg.Type = BroadcastType
+	if msg.Type != BroadcastType && msg.Type != DirectType {
+		msg.Type = BroadcastType
+	}
 	msg.Data = data
 	return msg
 }
