@@ -161,3 +161,45 @@ func Test_broadcast(t *testing.T) {
 		client.broadcast(msg)
 	})
 }
+
+func Test_send(t *testing.T) {
+	c := qt.New(t)
+
+	directData := []byte("private")
+	srv, port := testServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet && r.Method != http.MethodDelete {
+			resMsg, err := io.ReadAll(r.Body)
+			c.Assert(err, qt.IsNil)
+
+			c.Assert(r.Method, qt.Equals, http.MethodPut)
+			c.Assert(resMsg, qt.DeepEquals, directData)
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("[]"))
+	})
+	defer srv.Close()
+
+	entryPoint, _ := peer.Me(port, false)
+	me, _ := peer.Me(getRandomPort(), false)
+	client := New(me)
+	client.connect(entryPoint)
+
+	t.Run("success send", func(t *testing.T) {
+		msg := new(message.Message).SetFrom(me).SetData(directData).SetTo(entryPoint)
+		err := client.send(msg)
+		c.Assert(err, qt.DeepEquals, (*NodeErr)(nil))
+	})
+
+	t.Run("broadcast fails", func(t *testing.T) {
+		client.disconnect()
+		go func() {
+			err := <-client.Error
+			c.Assert(err, qt.IsNotNil)
+			c.Assert(err, qt.ErrorAs, new(*NodeErr))
+			c.Assert(err.ErrCode, qt.Equals, CONNECTION_ERR)
+		}()
+
+		msg := new(message.Message).SetFrom(me).SetType(message.DirectType)
+		client.send(msg)
+	})
+}

@@ -79,6 +79,15 @@ func main() {
 				}
 			case "disconnect":
 				close(client.Connection)
+			case "dm":
+				if len(args) > 2 {
+					if port, err := strconv.Atoi(args[1]); err == nil {
+						p, _ := peer.Me(port, false)
+						data := []byte(args[2])
+						msg := new(message.Message).SetFrom(client.Self).SetData(data).SetTo(p)
+						client.Outbox <- msg
+					}
+				}
 			case "exit":
 				client.Stop()
 				return

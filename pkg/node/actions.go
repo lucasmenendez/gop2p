@@ -118,3 +118,28 @@ func (n *Node) broadcast(msg *message.Message) *NodeErr {
 
 	return nil
 }
+
+// send function sends the message provided to a single peer registered from the
+// current node network.
+func (n *Node) send(msg *message.Message) *NodeErr {
+	if !n.IsConnected() {
+		// Return an error if the current node is not connected
+		return ConnErr("node not connected", nil)
+	} else if msg.To == nil {
+		// Return an error if no Message.To parameter is initialized
+		return InternalErr("no intended peer defined at provided message", nil)
+	} else if !n.Members.Contains(msg.To) {
+		// Return an error if the current network does not contains the
+		// Message.To peer provided
+		return ConnErr("message to a peer that is not into the network", nil)
+	}
+
+	// Encode message as a request and send it
+	if req, err := msg.GetRequest(msg.To.Hostname()); err != nil {
+		return ParseErr("error decoding request to message", err)
+	} else if _, err := n.client.Do(req); err != nil {
+		return ConnErr("error trying to perform the request", err)
+	}
+
+	return nil
+}

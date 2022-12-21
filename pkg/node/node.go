@@ -108,10 +108,19 @@ func (n *Node) Start() {
 					}
 					n.Connection = make(chan *peer.Peer)
 				}
-
 			case msg := <-n.Outbox:
-				// If the channel receives a message, broadcast to the network
-				if err := n.broadcast(msg); err != nil {
+				var err *NodeErr
+				if msg.Type == message.DirectType {
+					// If the message is a direct message, send it to the
+					// intended peer.
+					err = n.send(msg)
+				} else if msg.Type == message.BroadcastType {
+					// Else if it is a broadcast message, broadcast it to the
+					// network
+					err = n.broadcast(msg)
+				}
+
+				if err != nil {
 					n.Error <- err
 				}
 			case <-n.ctx.Done():
