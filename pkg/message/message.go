@@ -126,6 +126,8 @@ func (msg *Message) GetRequest(uri string) (*http.Request, error) {
 	// Set the message peer information as request headers.
 	request.Header.Add(addressHeader, msg.From.Address)
 	request.Header.Add(portHeader, fmt.Sprint(msg.From.Port))
+
+	request.Host = msg.From.String()
 	return request, nil
 }
 
