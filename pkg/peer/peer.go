@@ -10,14 +10,19 @@ import (
 	"net/url"
 )
 
-// baseHostname contains node address template
-const baseHostname string = "http://%s:%d"
+const (
+	// baseHostname contains node address template
+	baseHostname string = "http://%s:%d"
+	// baseString contains node address template
+	baseString string = "%s:%d"
+	// allAddresses contains the wildcard IP as string
+	allAddresses string = "0.0.0.0"
+)
 
-// baseString contains node address template
-const baseString string = "%s:%d"
-
-// allAddresses contains the wildcard IP as string
-const allAddresses string = "0.0.0.0"
+const (
+	TypeFull = "FULL"
+	TypeWeb  = "WEB"
+)
 
 var ErrBadAddress error = fmt.Errorf("bad peer address provided")
 var ErrPortAddress error = fmt.Errorf("bad peer port provided")
@@ -25,8 +30,10 @@ var ErrPortAddress error = fmt.Errorf("bad peer port provided")
 // Peer struct contains peer address and port, information that identifies any
 // node and allows to others to communicate with it.
 type Peer struct {
-	Port    int    `json:"port"`
-	Address string `json:"address"`
+	Port    int         `json:"port"`
+	Address string      `json:"address"`
+	Type    string      `json:"type"`
+	WebChan chan []byte `json:"-"`
 }
 
 // New function creates a peer with the provided address and port as argument
@@ -41,6 +48,7 @@ func New(address string, port int) (*Peer, error) {
 	peer := &Peer{
 		Address: address,
 		Port:    port,
+		Type:    TypeFull,
 	}
 
 	if _, err := url.Parse(peer.Hostname()); err != nil {
@@ -79,7 +87,7 @@ func Me(port int, remote bool) (*Peer, error) {
 // Equal function returns if the current peer is the same that the provided one.
 // It seems that both has the same address and port.
 func (p *Peer) Equal(to *Peer) bool {
-	return p.Address == to.Address && p.Port == to.Port
+	return p.Address == to.Address && p.Port == to.Port && p.Type == to.Type
 }
 
 // String function returns a human-readable format of the current peer.

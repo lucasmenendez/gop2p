@@ -70,7 +70,6 @@ func (n *Node) connect(entryPoint *peer.Peer) *NodeErr {
 
 	// Set node status as connected.
 	n.setConnected(true)
-
 	// Append the entrypoint to the current members.
 	n.Members.Append(entryPoint)
 	return nil
@@ -109,13 +108,17 @@ func (n *Node) broadcast(msg *message.Message) *NodeErr {
 	// Iterate over each member encoding as a request and performing it with
 	// the provided Message.
 	for _, member := range n.Members.Peers() {
+		if member.Type == peer.TypeWeb {
+			member.WebChan <- msg.Data
+			continue
+		}
+
 		if req, err := msg.GetRequest(member.Hostname()); err != nil {
 			return ParseErr("error decoding request to message", err)
 		} else if _, err := n.client.Do(req); err != nil {
 			return ConnErr("error trying to perform the request", err)
 		}
 	}
-
 	return nil
 }
 
@@ -132,6 +135,9 @@ func (n *Node) send(msg *message.Message) *NodeErr {
 		// Return an error if the current network does not contains the
 		// Message.To peer provided
 		return ConnErr("message to a peer that is not into the network", nil)
+	} else if msg.To.Type == peer.TypeWeb {
+		msg.To.WebChan <- msg.Data
+		return nil
 	}
 
 	// Encode message as a request and send it
@@ -140,6 +146,5 @@ func (n *Node) send(msg *message.Message) *NodeErr {
 	} else if _, err := n.client.Do(req); err != nil {
 		return ConnErr("error trying to perform the request", err)
 	}
-
 	return nil
 }

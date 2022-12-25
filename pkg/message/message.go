@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strconv"
 
@@ -29,11 +30,14 @@ const (
 	DirectType = iota
 )
 
-// addressHeader contains default http header key that contains address.
-const addressHeader string = "PEER_ADDRESS"
-
-// portHeader contains default http header key that contains port.
-const portHeader string = "PEER_PORT"
+const (
+	// addressHeader contains default http header key that contains address.
+	addressHeader string = "PEER_ADDRESS"
+	// portHeader contains default http header key that contains port.
+	portHeader string = "PEER_PORT"
+	//
+	typeHeader string = "PEER_TYPE"
+)
 
 // Message struct includes the content of a Message and it is transferred
 // between peers. It contains its type as integer (checkout defined types),
@@ -140,14 +144,20 @@ func (msg *Message) FromRequest(req *http.Request) *Message {
 	}
 
 	// Decodes the peer information from the http.Header's.
-	msg.From = &peer.Peer{}
-	if msg.From.Address = req.Header.Get(addressHeader); msg.From.Address == "" {
+
+	fromAddress, portValue, err := net.SplitHostPort(req.Host)
+	if err != nil {
 		return nil
-	} else if portValue := req.Header.Get(portHeader); portValue != "" {
-		var err error
-		if msg.From.Port, err = strconv.Atoi(portValue); err != nil {
-			return nil
-		}
+	}
+
+	if fromPort, err := strconv.Atoi(portValue); err != nil {
+		return nil
+	} else if msg.From, err = peer.New(fromAddress, fromPort); err != nil {
+		return nil
+	} else if fromType := req.Header.Get(typeHeader); fromType == peer.TypeWeb {
+		msg.From.Type = peer.TypeWeb
+	} else if req.Header.Get("Connection") == "keep-alive" {
+		msg.From.Type = peer.TypeWeb
 	}
 
 	// If the message type is BroadcastType or DirectType, read the request body

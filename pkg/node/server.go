@@ -1,6 +1,8 @@
 package node
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/lucasmenendez/gop2p/pkg/message"
@@ -14,6 +16,7 @@ func (n *Node) startListening() {
 	// Only listen on root and send every request to node handler.
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", n.handleRequest())
+	mux.HandleFunc("/sse", n.handelSSE())
 
 	// Create the node HTTP server to listen to other peers requests.
 	n.server.Handler = mux
@@ -44,11 +47,15 @@ func (n *Node) handleRequest() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Omit OPTION requests.
 		if r.Method == http.MethodOptions {
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT")
+			w.Header().Set("Access-Control-Allow-Headers", "*")
 			return
 		}
-
 		// Set default headers and parse current request into a message.
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+
 		msg := new(message.Message).FromRequest(r)
 		if msg == nil {
 			// If something fails decoding message from the request, response
@@ -106,5 +113,48 @@ func (n *Node) handleRequest() func(http.ResponseWriter, *http.Request) {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
+	}
+}
+
+func (n *Node) handelSSE() func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		flusher, ok := w.(http.Flusher)
+
+		if !ok {
+			http.Error(w, "Streaming unsupported!", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+
+		msg := new(message.Message).FromRequest(r)
+		from := msg.From
+		if n.Members.Contains(from) {
+			n.Members.Delete(from)
+			from.WebChan = make(chan []byte)
+			n.Members.Append(from)
+		}
+
+		// Create a goroutine to handle disconnection event through request
+		// context
+		go func(ctx context.Context, from *peer.Peer) {
+			<-ctx.Done()
+			n.Members.Delete(from)
+			if n.Members.Len() == 0 {
+				n.setConnected(false)
+			}
+		}(r.Context(), from)
+
+		// Handling Outbox messages chan to stream it to the client
+		for {
+			fmt.Fprintf(w, "data: %s\n\n", <-from.WebChan)
+
+			// Flush the data instead of buffering it
+			flusher.Flush()
+		}
+
 	}
 }

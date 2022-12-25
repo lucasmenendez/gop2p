@@ -9,8 +9,9 @@ import (
 // a slice of peers and a mutex to modify it safely. Both private arguments to
 // keep the control of the data isolated on this package.
 type Members struct {
-	peers []*Peer
-	mutex *sync.Mutex
+	peers    []*Peer
+	webChans map[string]chan []byte
+	mutex    *sync.Mutex
 }
 
 // panicIfNotInitialized function calls panic if the provided Members is not

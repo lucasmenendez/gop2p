@@ -51,7 +51,7 @@ func main() {
 	selfPort := getOptions()
 
 	// Start current node on provided port
-	selfPeer, _ := peer.Me(selfPort, false)
+	selfPeer, _ := peer.Me(selfPort, true)
 	client := node.New(selfPeer)
 	client.Start()
 
