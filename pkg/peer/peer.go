@@ -87,7 +87,7 @@ func Me(port int, remote bool) (*Peer, error) {
 // Equal function returns if the current peer is the same that the provided one.
 // It seems that both has the same address and port.
 func (p *Peer) Equal(to *Peer) bool {
-	return p.Address == to.Address && p.Port == to.Port && p.Type == to.Type
+	return p.Address == to.Address && p.Port == to.Port
 }
 
 // String function returns a human-readable format of the current peer.

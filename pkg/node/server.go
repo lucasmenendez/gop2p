@@ -1,7 +1,6 @@
 package node
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 
@@ -45,12 +44,19 @@ func (n *Node) startListening() {
 // "DELETE" requests and the plain message from "POST" requests.
 func (n *Node) handleRequest() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Omit OPTION requests.
+		if r.Host == n.Self.String() {
+			http.Error(w, "You can not connect with yourself.", http.StatusBadRequest)
+			return
+		}
+
+		// Set cors compatible headers when the request has OPTION method.
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
+
 		if r.Method == http.MethodOptions {
-			w.Header().Set("Access-Control-Allow-Credentials", "true")
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Header().Set("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT")
-			w.Header().Set("Access-Control-Allow-Headers", "*")
+			w.WriteHeader(http.StatusOK)
 			return
 		}
 		// Set default headers and parse current request into a message.
@@ -90,6 +96,9 @@ func (n *Node) handleRequest() func(http.ResponseWriter, *http.Request) {
 
 			// Update the current member list safely appending the Message.From
 			// Peer and if the current node was not connected update its status.
+			if msg.From.Type == peer.TypeWeb {
+				msg.From.WebChan = make(chan []byte)
+			}
 			n.Members.Append(msg.From)
 			n.setConnected(true)
 
@@ -118,43 +127,51 @@ func (n *Node) handleRequest() func(http.ResponseWriter, *http.Request) {
 
 func (n *Node) handelSSE() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Get the http.Flusher of the current response writer to stream data
 		flusher, ok := w.(http.Flusher)
-
 		if !ok {
-			http.Error(w, "Streaming unsupported!", http.StatusInternalServerError)
+			http.Error(w, "Streaming not supported.", http.StatusInternalServerError)
 			return
 		}
 
+		// Set Server Send Events compatible headers
 		w.Header().Set("Content-Type", "text/event-stream")
 		w.Header().Set("Cache-Control", "no-cache")
 		w.Header().Set("Connection", "keep-alive")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
 
+		// Parse open stream message and
 		msg := new(message.Message).FromRequest(r)
+		if !n.Members.Contains(msg.From) {
+			http.Error(w, "Not connected peer, perform a connect request first.", http.StatusForbidden)
+			return
+		}
+
 		from := msg.From
-		if n.Members.Contains(from) {
-			n.Members.Delete(from)
-			from.WebChan = make(chan []byte)
-			n.Members.Append(from)
-		}
-
-		// Create a goroutine to handle disconnection event through request
-		// context
-		go func(ctx context.Context, from *peer.Peer) {
-			<-ctx.Done()
-			n.Members.Delete(from)
-			if n.Members.Len() == 0 {
-				n.setConnected(false)
+		members := n.Members.Peers()
+		for _, member := range members {
+			if msg.From.Equal(member) {
+				from = member
 			}
-		}(r.Context(), from)
-
-		// Handling Outbox messages chan to stream it to the client
-		for {
-			fmt.Fprintf(w, "data: %s\n\n", <-from.WebChan)
-
-			// Flush the data instead of buffering it
-			flusher.Flush()
 		}
 
+		// Handling Outbox messages chan to stream it to the client and
+		// disconnection events throught request Context Done channel.
+		for {
+			select {
+			case <-r.Context().Done():
+				close(from.WebChan)
+				n.Members.Delete(from)
+				if n.Members.Len() == 0 {
+					n.setConnected(false)
+				}
+				return
+			case data := <-from.WebChan:
+				fmt.Fprintf(w, "data: %s\n\n", data)
+				// Flush the data instead of buffering it
+				flusher.Flush()
+			}
+		}
 	}
 }

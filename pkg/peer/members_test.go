@@ -123,7 +123,7 @@ func TestMembersToJSON(t *testing.T) {
 
 	examples := getExamples(3)
 	address := examples[0].Address
-	expected := []byte("[{\"port\":5000,\"address\":\"" + address + "\"}]")
+	expected := []byte("[{\"port\":5000,\"address\":\"" + address + "\",\"type\":\"FULL\"}]")
 	members := NewMembers()
 	members.Append(examples[0])
 
@@ -135,7 +135,7 @@ func TestMembersToJSON(t *testing.T) {
 		members.Append(example)
 	}
 
-	expected = []byte("[{\"port\":5000,\"address\":\"" + address + "\"},{\"port\":5001,\"address\":\"" + address + "\"},{\"port\":5002,\"address\":\"" + address + "\"}]")
+	expected = []byte("[{\"port\":5000,\"address\":\"" + address + "\",\"type\":\"FULL\"},{\"port\":5001,\"address\":\"" + address + "\",\"type\":\"FULL\"},{\"port\":5002,\"address\":\"" + address + "\",\"type\":\"FULL\"}]")
 	result, err = members.ToJSON()
 	c.Assert(err, qt.IsNil)
 	c.Assert(expected, qt.DeepEquals, result)

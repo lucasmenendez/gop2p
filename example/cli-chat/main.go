@@ -51,7 +51,7 @@ func main() {
 	selfPort := getOptions()
 
 	// Start current node on provided port
-	selfPeer, _ := peer.Me(selfPort, false)
+	selfPeer, _ := peer.Me(selfPort, true)
 	client := node.New(selfPeer)
 	client.Start()
 
@@ -73,7 +73,7 @@ func main() {
 			case "connect":
 				if len(args) > 1 {
 					if port, err := strconv.Atoi(args[1]); err == nil {
-						p, _ := peer.Me(port, false)
+						p, _ := peer.Me(port, true)
 						client.Connection <- p
 					}
 				}
@@ -82,7 +82,7 @@ func main() {
 			case "dm":
 				if len(args) > 2 {
 					if port, err := strconv.Atoi(args[1]); err == nil {
-						p, _ := peer.Me(port, false)
+						p, _ := peer.Me(port, true)
 						data := []byte(args[2])
 						msg := new(message.Message).SetFrom(client.Self).SetData(data).SetTo(p)
 						client.Outbox <- msg

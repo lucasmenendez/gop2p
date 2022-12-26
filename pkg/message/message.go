@@ -31,12 +31,16 @@ const (
 )
 
 const (
-	// addressHeader contains default http header key that contains address.
-	addressHeader string = "PEER_ADDRESS"
-	// portHeader contains default http header key that contains port.
-	portHeader string = "PEER_PORT"
-	//
-	typeHeader string = "PEER_TYPE"
+	// addressHeader contains the default http header key to send the peer
+	// address through a network request.
+	addressHeader string = "X-PEER_ADDRESS"
+	// portHeader contains the default http header key to send the peer port
+	// through a network request.
+	portHeader string = "X-PEER_PORT"
+	// typeHeader contains the default http header key to send the peer type
+	// through a network request.
+	typeHeader    string = "X-PEER_TYPE"
+	fromParameter string = "from"
 )
 
 // Message struct includes the content of a Message and it is transferred
@@ -126,7 +130,7 @@ func (msg *Message) GetRequest(uri string) (*http.Request, error) {
 	// Set the message peer information as request headers.
 	request.Header.Add(addressHeader, msg.From.Address)
 	request.Header.Add(portHeader, fmt.Sprint(msg.From.Port))
-
+	request.Header.Add(typeHeader, msg.From.Type)
 	request.Host = msg.From.String()
 	return request, nil
 }
@@ -145,13 +149,26 @@ func (msg *Message) FromRequest(req *http.Request) *Message {
 		msg.Type = DirectType
 	}
 
-	// Decodes the peer information from the http.Header's.
+	// Decodes the peer port and address information from the http.Header's or
+	// the request.Host information.
+	fromAddress := req.Header.Get(addressHeader)
+	portValue := req.Header.Get(portHeader)
+	if fromAddress == "" || portValue == "" {
+		host := req.URL.Query().Get(fromParameter)
+		if host == "" && req.Host == "" {
+			return nil
+		} else if host == "" {
+			host = req.Host
+		}
 
-	fromAddress, portValue, err := net.SplitHostPort(req.Host)
-	if err != nil {
-		return nil
+		var err error
+		fromAddress, portValue, err = net.SplitHostPort(host)
+		if err != nil {
+			return nil
+		}
 	}
 
+	// Try to create a valid peer with the decoded info and set the peer type.
 	if fromPort, err := strconv.Atoi(portValue); err != nil {
 		return nil
 	} else if msg.From, err = peer.New(fromAddress, fromPort); err != nil {

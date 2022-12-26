@@ -95,7 +95,8 @@ func Test_handleRequest(t *testing.T) {
 		srv.Start()
 
 		firstPort := getRandomPort()
-		req := prepareRequest(t, message.ConnectType, srv.Self.Port, firstPort, nil)
+		p, _ := peer.Me(firstPort, false)
+		req := prepareRequest(t, message.ConnectType, srv.Self.Port, p.Port, nil)
 		res, err := httpClient.Do(req)
 		c.Assert(err, qt.IsNil)
 		c.Assert(res.StatusCode, qt.Equals, http.StatusOK)
@@ -111,7 +112,7 @@ func Test_handleRequest(t *testing.T) {
 
 		body, err = io.ReadAll(res.Body)
 		c.Assert(err, qt.IsNil)
-		c.Assert(body, qt.DeepEquals, []byte("[{\"port\":"+fmt.Sprint(firstPort)+",\"address\":\"localhost\"}]"))
+		c.Assert(body, qt.DeepEquals, []byte("[{\"port\":"+fmt.Sprint(p.Port)+",\"address\":\""+p.Address+"\",\"type\":\"FULL\"}]"))
 	})
 
 	t.Run("broadcast and direct message", func(t *testing.T) {
