@@ -96,9 +96,6 @@ func (n *Node) handleRequest() func(http.ResponseWriter, *http.Request) {
 
 			// Update the current member list safely appending the Message.From
 			// Peer and if the current node was not connected update its status.
-			if msg.From.Type == peer.TypeWeb {
-				msg.From.WebChan = make(chan []byte)
-			}
 			n.Members.Append(msg.From)
 			n.setConnected(true)
 
@@ -148,26 +145,20 @@ func (n *Node) handelSSE() func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		from := msg.From
-		members := n.Members.Peers()
-		for _, member := range members {
-			if msg.From.Equal(member) {
-				from = member
-			}
-		}
+		msgChan := n.Members.WebChan(msg.From)
 
 		// Handling Outbox messages chan to stream it to the client and
 		// disconnection events throught request Context Done channel.
 		for {
 			select {
 			case <-r.Context().Done():
-				close(from.WebChan)
-				n.Members.Delete(from)
+				close(msgChan)
+				n.Members.Delete(msg.From)
 				if n.Members.Len() == 0 {
 					n.setConnected(false)
 				}
 				return
-			case data := <-from.WebChan:
+			case data := <-msgChan:
 				fmt.Fprintf(w, "data: %s\n\n", data)
 				// Flush the data instead of buffering it
 				flusher.Flush()

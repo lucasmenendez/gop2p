@@ -24,16 +24,17 @@ const (
 	TypeWeb  = "WEB"
 )
 
-var ErrBadAddress error = fmt.Errorf("bad peer address provided")
-var ErrPortAddress error = fmt.Errorf("bad peer port provided")
+var (
+	ErrBadAddress  = fmt.Errorf("bad peer address provided")
+	ErrPortAddress = fmt.Errorf("bad peer port provided")
+)
 
 // Peer struct contains peer address and port, information that identifies any
 // node and allows to others to communicate with it.
 type Peer struct {
-	Port    int         `json:"port"`
-	Address string      `json:"address"`
-	Type    string      `json:"type"`
-	WebChan chan []byte `json:"-"`
+	Port    int    `json:"port"`
+	Address string `json:"address"`
+	Type    string `json:"type"`
 }
 
 // New function creates a peer with the provided address and port as argument

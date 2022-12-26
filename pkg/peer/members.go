@@ -9,8 +9,8 @@ import (
 // a slice of peers and a mutex to modify it safely. Both private arguments to
 // keep the control of the data isolated on this package.
 type Members struct {
-	peers []*Peer
 	mutex *sync.Mutex
+	peers map[*Peer]chan []byte
 }
 
 // panicIfNotInitialized function calls panic if the provided Members is not
@@ -25,22 +25,52 @@ func panicIfNotInitialized(members *Members) {
 // NewMembers function intializes a new Members struct and return it.
 func NewMembers() *Members {
 	return &Members{
-		peers: []*Peer{},
 		mutex: &sync.Mutex{},
+		peers: map[*Peer]chan []byte{},
 	}
 }
 
 // Peers function returns a copy of the list of peers safely ot the current
 // members, using the mutex associated to it.
-func (m *Members) Peers() []*Peer {
+func (m *Members) Peers() map[*Peer]chan []byte {
 	panicIfNotInitialized(m)
 
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	var peers []*Peer
-	peers = append(peers, m.peers...)
-	return peers
+	result := map[*Peer]chan []byte{}
+	for member, ch := range m.peers {
+		result[member] = ch
+	}
+	return result
+}
+
+func (m *Members) WebChan(p *Peer) chan []byte {
+	panicIfNotInitialized(m)
+
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	for member, ch := range m.peers {
+		if member.Equal(p) {
+			return ch
+		}
+	}
+	return nil
+}
+
+func (m *Members) PeersByType(peerType string) map[*Peer]chan []byte {
+	panicIfNotInitialized(m)
+
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	result := map[*Peer]chan []byte{}
+	for p, ch := range m.peers {
+		if p.Type == peerType {
+			result[p] = ch
+		}
+	}
+	return result
 }
 
 // Len function returns the number of peers that current members contains
@@ -63,18 +93,13 @@ func (m *Members) Append(peer *Peer) *Members {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	included := false
-	for _, member := range m.peers {
-		if member.Equal(peer) {
-			included = true
-			break
+	if _, included := m.peers[peer]; !included {
+		if peer.Type == TypeWeb {
+			m.peers[peer] = make(chan []byte)
+		} else {
+			m.peers[peer] = nil
 		}
 	}
-
-	if !included {
-		m.peers = append(m.peers, peer)
-	}
-
 	return m
 }
 
@@ -84,14 +109,7 @@ func (m *Members) Delete(peer *Peer) *Members {
 
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-
-	for i, member := range m.peers {
-		if member.Equal(peer) {
-			m.peers = append(m.peers[:i], m.peers[i+1:]...)
-			return m
-		}
-	}
-
+	delete(m.peers, peer)
 	return m
 }
 
@@ -102,14 +120,8 @@ func (m *Members) Contains(peer *Peer) bool {
 
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-
-	for _, member := range m.peers {
-		if member.Equal(peer) {
-			return true
-		}
-	}
-
-	return false
+	_, included := m.peers[peer]
+	return included
 }
 
 // ToJSON function encodes the current list of network members into a JSON
@@ -120,7 +132,11 @@ func (m *Members) ToJSON() ([]byte, error) {
 
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	return json.Marshal(m.peers)
+	peerList := []*Peer{}
+	for member := range m.peers {
+		peerList = append(peerList, member)
+	}
+	return json.Marshal(peerList)
 }
 
 // FromJSON function parses the provided input as peer list and sets it to the
@@ -128,14 +144,18 @@ func (m *Members) ToJSON() ([]byte, error) {
 func (m *Members) FromJSON(input []byte) (*Members, error) {
 	panicIfNotInitialized(m)
 
-	peers := []*Peer{}
-	if err := json.Unmarshal(input, &peers); err != nil {
+	peersList := []*Peer{}
+	if err := json.Unmarshal(input, &peersList); err != nil {
 		return nil, err
+	}
+
+	peersMap := map[*Peer]chan []byte{}
+	for _, member := range peersList {
+		peersMap[member] = nil
 	}
 
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	m.peers = peers
-
+	m.peers = peersMap
 	return m, nil
 }

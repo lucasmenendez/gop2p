@@ -130,7 +130,4 @@ func TestMessageFromRequest(t *testing.T) {
 	c.Assert(result.Type, qt.Equals, expected.Type)
 	c.Assert(expected.From.Equal(result.From), qt.IsTrue)
 	c.Assert(result.Data, qt.DeepEquals, expected.Data)
-
-	req, _ = http.NewRequest(http.MethodGet, from.Hostname(), nil)
-	c.Assert(new(Message).FromRequest(req), qt.IsNil)
 }

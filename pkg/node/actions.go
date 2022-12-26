@@ -56,14 +56,15 @@ func (n *Node) connect(entryPoint *peer.Peer) *NodeErr {
 
 	// Update current members and send a connection request to all of them,
 	// discarting the response received (the list of current members).
-	for _, member := range receivedMembers.Peers() {
+	for member := range receivedMembers.PeersByType(peer.TypeFull) {
+		// If a received peer is not the same that contains the current node try
+		// to connect directly.
 		if !n.Self.Equal(member) {
 			if req, err := msg.GetRequest(member.Hostname()); err != nil {
 				return ParseErr("error decoding request to message", err)
 			} else if _, err := n.client.Do(req); err != nil {
 				return ConnErr("error trying to perform the request", err)
 			}
-
 			n.Members.Append(member)
 		}
 	}
@@ -107,12 +108,10 @@ func (n *Node) broadcast(msg *message.Message) *NodeErr {
 
 	// Iterate over each member encoding as a request and performing it with
 	// the provided Message.
-	for _, member := range n.Members.Peers() {
-		if member.Type == peer.TypeWeb {
-			member.WebChan <- msg.Data
-			continue
-		}
-
+	for _, ch := range n.Members.PeersByType(peer.TypeWeb) {
+		ch <- msg.Data
+	}
+	for member := range n.Members.PeersByType(peer.TypeFull) {
 		if req, err := msg.GetRequest(member.Hostname()); err != nil {
 			return ParseErr("error decoding request to message", err)
 		} else if _, err := n.client.Do(req); err != nil {
@@ -136,7 +135,8 @@ func (n *Node) send(msg *message.Message) *NodeErr {
 		// Message.To peer provided
 		return ConnErr("message to a peer that is not into the network", nil)
 	} else if msg.To.Type == peer.TypeWeb {
-		msg.To.WebChan <- msg.Data
+		ch := n.Members.WebChan(msg.To)
+		ch <- msg.Data
 		return nil
 	}
 
