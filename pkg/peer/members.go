@@ -93,7 +93,15 @@ func (m *Members) Append(peer *Peer) *Members {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	if _, included := m.peers[peer]; !included {
+	included := false
+	for member := range m.peers {
+		if member.Equal(peer) {
+			included = true
+			break
+		}
+	}
+
+	if !included {
 		if peer.Type == TypeWeb {
 			m.peers[peer] = make(chan []byte)
 		} else {
@@ -109,7 +117,12 @@ func (m *Members) Delete(peer *Peer) *Members {
 
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	delete(m.peers, peer)
+	for member := range m.peers {
+		if member.Equal(peer) {
+			delete(m.peers, member)
+			break
+		}
+	}
 	return m
 }
 
@@ -120,7 +133,14 @@ func (m *Members) Contains(peer *Peer) bool {
 
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	_, included := m.peers[peer]
+
+	included := false
+	for member := range m.peers {
+		if member.Equal(peer) {
+			included = true
+			break
+		}
+	}
 	return included
 }
 

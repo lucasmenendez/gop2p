@@ -1,7 +1,6 @@
 package node
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"testing"
@@ -29,8 +28,7 @@ func Test_connect(t *testing.T) {
 		me, _ := peer.Me(5001, false)
 		srv, port := testServer(func(w http.ResponseWriter, r *http.Request) {
 			c.Assert(r.Method, qt.Equals, http.MethodGet)
-			c.Assert(r.Header.Get("PEER_ADDRESS"), qt.Equals, me.Address)
-			c.Assert(r.Header.Get("PEER_PORT"), qt.Equals, fmt.Sprint(me.Port))
+			c.Assert(r.Host, qt.Equals, me.String())
 
 			res, _ := peer.NewMembers().ToJSON()
 			w.Header().Set("Content-Type", "text/plain")
@@ -89,8 +87,7 @@ func Test_disconnect(t *testing.T) {
 			w.Write(res)
 		} else {
 			c.Assert(r.Method, qt.Equals, http.MethodDelete)
-			c.Assert(r.Header.Get("PEER_ADDRESS"), qt.Equals, me.Address)
-			c.Assert(r.Header.Get("PEER_PORT"), qt.Equals, fmt.Sprint(me.Port))
+			c.Assert(r.Host, qt.Equals, me.String())
 		}
 	})
 	defer srv.Close()
@@ -128,8 +125,7 @@ func Test_broadcast(t *testing.T) {
 			w.Write(res)
 		} else if r.Method != http.MethodDelete {
 			c.Assert(r.Method, qt.Equals, http.MethodPost)
-			c.Assert(r.Header.Get("PEER_ADDRESS"), qt.Equals, me.Address)
-			c.Assert(r.Header.Get("PEER_PORT"), qt.Equals, fmt.Sprint(me.Port))
+			c.Assert(r.Host, qt.Equals, me.String())
 
 			resMsg, err := io.ReadAll(r.Body)
 			c.Assert(err, qt.IsNil)

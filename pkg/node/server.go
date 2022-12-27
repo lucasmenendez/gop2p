@@ -54,13 +54,10 @@ func (n *Node) handleRequest() func(http.ResponseWriter, *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "*")
 		w.Header().Set("Access-Control-Allow-Headers", "*")
-
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-		// Set default headers and parse current request into a message.
-		w.Header().Set("Access-Control-Allow-Origin", "*")
 
 		msg := new(message.Message).FromRequest(r)
 		if msg == nil {
@@ -145,10 +142,9 @@ func (n *Node) handelSSE() func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		msgChan := n.Members.WebChan(msg.From)
-
 		// Handling Outbox messages chan to stream it to the client and
 		// disconnection events throught request Context Done channel.
+		msgChan := n.Members.WebChan(msg.From)
 		for {
 			select {
 			case <-r.Context().Done():
