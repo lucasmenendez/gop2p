@@ -130,21 +130,25 @@ func (n *Node) send(msg *message.Message) *NodeErr {
 	} else if msg.To == nil {
 		// Return an error if no Message.To parameter is initialized
 		return InternalErr("no intended peer defined at provided message", nil)
-	} else if !n.Members.Contains(msg.To) {
-		// Return an error if the current network does not contains the
-		// Message.To peer provided
-		return ConnErr("message to a peer that is not into the network", nil)
-	} else if msg.To.Type == peer.TypeWeb {
-		ch := n.Members.WebChan(msg.To)
-		ch <- msg.Data
-		return nil
 	}
 
-	// Encode message as a request and send it
-	if req, err := msg.GetRequest(msg.To.Hostname()); err != nil {
-		return ParseErr("error decoding request to message", err)
-	} else if _, err := n.client.Do(req); err != nil {
-		return ConnErr("error trying to perform the request", err)
+	for _, to := range msg.To {
+		if !n.Members.Contains(to) {
+			// Return an error if the current network does not contains the
+			// Message.To peer provided
+			return ConnErr("message to a peer that is not into the network", nil)
+		} else if to.Type == peer.TypeWeb {
+			ch := n.Members.WebChan(to)
+			ch <- msg.Data
+			return nil
+		}
+
+		// Encode message as a request and send it
+		if req, err := msg.GetRequest(to.Hostname()); err != nil {
+			return ParseErr("error decoding request to message", err)
+		} else if _, err := n.client.Do(req); err != nil {
+			return ConnErr("error trying to perform the request", err)
+		}
 	}
 	return nil
 }

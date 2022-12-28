@@ -47,10 +47,10 @@ const (
 // between peers. It contains its type as integer (checkout defined types),
 // the information about the message sender and the content of the message.
 type Message struct {
-	Type int
-	Data []byte
-	From *peer.Peer
-	To   *peer.Peer
+	Type int          `json:"type"`
+	Data []byte       `json:"data"`
+	From *peer.Peer   `json:"from"`
+	To   []*peer.Peer `json:"to"`
 }
 
 // SetType function sets the type of the current message to the provided one,
@@ -74,7 +74,7 @@ func (msg *Message) SetFrom(from *peer.Peer) *Message {
 
 // SetTo function sets the provided peer as the peer for which the current
 // message is intended and returns it as result.
-func (msg *Message) SetTo(to *peer.Peer) *Message {
+func (msg *Message) SetTo(to ...*peer.Peer) *Message {
 	msg.Type = DirectType
 	msg.To = to
 	return msg

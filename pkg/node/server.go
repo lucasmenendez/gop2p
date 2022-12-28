@@ -12,10 +12,15 @@ import (
 // path to the Node.handleRequest function, assign it to the current Node.server
 // and tries to start the HTTP server.
 func (n *Node) startListening() {
-	// Only listen on root and send every request to node handler.
 	mux := http.NewServeMux()
+	// Listen on root every request and handle it with the default node handler.
 	mux.HandleFunc("/", n.handleRequest())
-	mux.HandleFunc("/sse", n.handelSSE())
+	// Listen on /sse to handle the connection with web peers (using Server Sent
+	// Events protocol)
+	mux.HandleFunc("/sse", n.handleSSE())
+	// Listen on /forward to redirect requests from peers that can not see other
+	// network peers (like web peers).
+	mux.HandleFunc("/fwd", n.handleFrowards())
 
 	// Create the node HTTP server to listen to other peers requests.
 	n.server.Handler = mux
@@ -119,7 +124,7 @@ func (n *Node) handleRequest() func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func (n *Node) handelSSE() func(http.ResponseWriter, *http.Request) {
+func (n *Node) handleSSE() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Get the http.Flusher of the current response writer to stream data
 		flusher, ok := w.(http.Flusher)
@@ -160,5 +165,15 @@ func (n *Node) handelSSE() func(http.ResponseWriter, *http.Request) {
 				flusher.Flush()
 			}
 		}
+	}
+}
+
+func (n *Node) handleFrowards() func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Parse request to a message
+		// Get from peer information and validate it
+		// Parse target peers received and validate their information
+		// Send the message to the target peers using the according way to their
+		// types of peers.
 	}
 }
