@@ -27,7 +27,6 @@ func Test_connect(t *testing.T) {
 	t.Run("success connection", func(t *testing.T) {
 		me, _ := peer.Me(5001, false)
 		srv, port := testServer(func(w http.ResponseWriter, r *http.Request) {
-			c.Assert(r.Method, qt.Equals, http.MethodGet)
 			c.Assert(r.Host, qt.Equals, me.String())
 
 			res, _ := peer.NewMembers().ToJSON()
@@ -86,7 +85,6 @@ func Test_disconnect(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			w.Write(res)
 		} else {
-			c.Assert(r.Method, qt.Equals, http.MethodDelete)
 			c.Assert(r.Host, qt.Equals, me.String())
 		}
 	})
@@ -118,18 +116,20 @@ func Test_broadcast(t *testing.T) {
 	me, _ := peer.Me(5001, false)
 	expMsg := []byte("ey")
 	srv, port := testServer(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet {
+		resMsg, err := io.ReadAll(r.Body)
+		c.Assert(err, qt.IsNil)
+		msg := new(message.Message).SetJSON(resMsg)
+
+		if msg.Type == message.ConnectType {
 			res, _ := peer.NewMembers().ToJSON()
 			w.Header().Set("Content-Type", "text/plain")
 			w.WriteHeader(http.StatusOK)
 			w.Write(res)
-		} else if r.Method != http.MethodDelete {
-			c.Assert(r.Method, qt.Equals, http.MethodPost)
+		} else if msg.Type == message.BroadcastType {
 			c.Assert(r.Host, qt.Equals, me.String())
 
-			resMsg, err := io.ReadAll(r.Body)
 			c.Assert(err, qt.IsNil)
-			c.Assert(resMsg, qt.DeepEquals, expMsg)
+			c.Assert(msg.Data, qt.DeepEquals, expMsg)
 		}
 	})
 	defer srv.Close()
@@ -163,15 +163,17 @@ func Test_send(t *testing.T) {
 
 	directData := []byte("private")
 	srv, port := testServer(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet && r.Method != http.MethodDelete {
-			resMsg, err := io.ReadAll(r.Body)
-			c.Assert(err, qt.IsNil)
+		resMsg, err := io.ReadAll(r.Body)
+		c.Assert(err, qt.IsNil)
+		msg := new(message.Message).SetJSON(resMsg)
 
-			c.Assert(r.Method, qt.Equals, http.MethodPut)
-			c.Assert(resMsg, qt.DeepEquals, directData)
+		if msg.Type == message.ConnectType {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("[]"))
+			return
+		} else if msg.Type == message.DirectType {
+			c.Assert(msg.Data, qt.DeepEquals, directData)
 		}
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("[]"))
 	})
 	defer srv.Close()
 

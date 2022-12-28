@@ -2,7 +2,10 @@ package node
 
 import (
 	"fmt"
+	"io"
+	"net"
 	"net/http"
+	"strconv"
 
 	"github.com/lucasmenendez/gop2p/pkg/message"
 	"github.com/lucasmenendez/gop2p/pkg/peer"
@@ -64,16 +67,18 @@ func (n *Node) handleRequest() func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		msg := new(message.Message).FromRequest(r)
+		// Parse request to a message
+		data, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "no valid message provided", http.StatusBadRequest)
+			return
+		}
+
+		msg := new(message.Message).SetJSON(data)
 		if msg == nil {
 			// If something fails decoding message from the request, response
 			// with a bad request HTTP error.
 			http.Error(w, "No valid Message provided", http.StatusBadRequest)
-			return
-		} else if !n.Members.Contains(msg.From) && msg.Type != message.ConnectType {
-			// If the message peer is not a registered member of the current
-			// network, return a forbidden HTTP error.
-			http.Error(w, "Peer not registered", http.StatusForbidden)
 			return
 		}
 
@@ -105,11 +110,24 @@ func (n *Node) handleRequest() func(http.ResponseWriter, *http.Request) {
 			w.Header().Set("Content-Type", "text/plain")
 			w.Write(responseBody)
 		case message.BroadcastType, message.DirectType:
+			if !n.Members.Contains(msg.From) {
+				// If the message peer is not a registered member of the current
+				// network, return a forbidden HTTP error.
+				http.Error(w, "Peer not registered", http.StatusForbidden)
+				return
+			}
 			// When broadcast or direct message is received it will be redirected
 			// to the inbox messages channel where the user will be waiting for
 			// read it.
 			n.Inbox <- msg
 		case message.DisconnectType:
+			if !n.Members.Contains(msg.From) {
+				// If the message peer is not a registered member of the current
+				// network, return a forbidden HTTP error.
+				http.Error(w, "Peer not registered", http.StatusForbidden)
+				return
+			}
+
 			// disconnected function deletes the message peer from the current
 			// network members.
 			n.Members.Delete(msg.From)
@@ -140,21 +158,31 @@ func (n *Node) handleSSE() func(http.ResponseWriter, *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Headers", "*")
 
-		// Parse open stream message and
-		msg := new(message.Message).FromRequest(r)
-		if !n.Members.Contains(msg.From) {
-			http.Error(w, "Not connected peer, perform a connect request first.", http.StatusForbidden)
+		host := r.URL.Query().Get("from")
+		if host == "" {
+			http.Error(w, "no from query parameter provided", http.StatusBadRequest)
+			return
+		}
+		fromAddress, portValue, err := net.SplitHostPort(host)
+		if err != nil {
+			http.Error(w, "error parsing from query parameter provided", http.StatusBadRequest)
+			return
+		}
+		from := new(peer.Peer)
+		from.Address = fromAddress
+		if from.Port, err = strconv.Atoi(portValue); err != nil {
+			http.Error(w, "error parsing from query parameter provided", http.StatusBadRequest)
 			return
 		}
 
 		// Handling Outbox messages chan to stream it to the client and
 		// disconnection events throught request Context Done channel.
-		msgChan := n.Members.WebChan(msg.From)
+		msgChan := n.Members.WebChan(from)
 		for {
 			select {
 			case <-r.Context().Done():
 				close(msgChan)
-				n.Members.Delete(msg.From)
+				n.Members.Delete(from)
 				if n.Members.Len() == 0 {
 					n.setConnected(false)
 				}
@@ -171,6 +199,18 @@ func (n *Node) handleSSE() func(http.ResponseWriter, *http.Request) {
 func (n *Node) handleFrowards() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Parse request to a message
+		data, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "no valid message provided", http.StatusBadRequest)
+			return
+		}
+
+		msg := new(message.Message).SetJSON(data)
+		if msg == nil {
+			http.Error(w, "no valid message provided", http.StatusBadRequest)
+			return
+		}
+
 		// Get from peer information and validate it
 		// Parse target peers received and validate their information
 		// Send the message to the target peers using the according way to their

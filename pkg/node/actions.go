@@ -1,6 +1,7 @@
 package node
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,6 +17,21 @@ func (node *Node) setConnected(connected bool) {
 	node.connected = connected
 }
 
+func composeRequest(msg *message.Message, to *peer.Peer) (*http.Request, error) {
+	encMsg := msg.JSON()
+	if encMsg == nil {
+		return nil, ParseErr("error encoding message to JSON", nil)
+	}
+	body := bytes.NewBuffer(encMsg)
+	req, err := http.NewRequest(http.MethodPost, to.Hostname(), body)
+	if err != nil {
+		return nil, ParseErr("error decoding request to message", err)
+	}
+	req.Host = msg.From.String()
+
+	return req, nil
+}
+
 // connect function allows to a node to join to a network using a knowed a peer
 // that is already into that network. The function request a connection to that
 // peer and it response with the current network members. To complete the
@@ -24,7 +40,7 @@ func (node *Node) setConnected(connected bool) {
 func (n *Node) connect(entryPoint *peer.Peer) *NodeErr {
 	// Create the request using a connection message.
 	msg := new(message.Message).SetType(message.ConnectType).SetFrom(n.Self)
-	req, err := msg.GetRequest(entryPoint.Hostname())
+	req, err := composeRequest(msg, entryPoint)
 	if err != nil {
 		return ParseErr("error encoding message to request", err)
 	}
@@ -60,7 +76,7 @@ func (n *Node) connect(entryPoint *peer.Peer) *NodeErr {
 		// If a received peer is not the same that contains the current node try
 		// to connect directly.
 		if !n.Self.Equal(member) {
-			if req, err := msg.GetRequest(member.Hostname()); err != nil {
+			if req, err := composeRequest(msg, member); err != nil {
 				return ParseErr("error decoding request to message", err)
 			} else if _, err := n.client.Do(req); err != nil {
 				return ConnErr("error trying to perform the request", err)
@@ -108,13 +124,20 @@ func (n *Node) broadcast(msg *message.Message) *NodeErr {
 
 	// Iterate over each member encoding as a request and performing it with
 	// the provided Message.
+	encMsg := msg.JSON()
+	if encMsg == nil {
+		return ParseErr("error encoding message to JSON", nil)
+	}
 	for _, ch := range n.Members.PeersByType(peer.TypeWeb) {
-		ch <- msg.Data
+		ch <- encMsg
 	}
 	for member := range n.Members.PeersByType(peer.TypeFull) {
-		if req, err := msg.GetRequest(member.Hostname()); err != nil {
+		req, err := composeRequest(msg, member)
+		if err != nil {
 			return ParseErr("error decoding request to message", err)
-		} else if _, err := n.client.Do(req); err != nil {
+		}
+
+		if _, err := n.client.Do(req); err != nil {
 			return ConnErr("error trying to perform the request", err)
 		}
 	}
@@ -132,21 +155,27 @@ func (n *Node) send(msg *message.Message) *NodeErr {
 		return InternalErr("no intended peer defined at provided message", nil)
 	}
 
+	encMsg := msg.JSON()
+	if encMsg == nil {
+		return ParseErr("error encoding message to JSON", nil)
+	}
 	for _, to := range msg.To {
 		if !n.Members.Contains(to) {
 			// Return an error if the current network does not contains the
 			// Message.To peer provided
-			return ConnErr("message to a peer that is not into the network", nil)
+			return ConnErr("target peer is not into the network", nil)
 		} else if to.Type == peer.TypeWeb {
 			ch := n.Members.WebChan(to)
-			ch <- msg.Data
+			ch <- encMsg
 			return nil
 		}
 
 		// Encode message as a request and send it
-		if req, err := msg.GetRequest(to.Hostname()); err != nil {
+		req, err := composeRequest(msg, to)
+		if err != nil {
 			return ParseErr("error decoding request to message", err)
-		} else if _, err := n.client.Do(req); err != nil {
+		}
+		if _, err := n.client.Do(req); err != nil {
 			return ConnErr("error trying to perform the request", err)
 		}
 	}

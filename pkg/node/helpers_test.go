@@ -53,7 +53,7 @@ func prepareRequest(t *testing.T, reqType, to, from int, data []byte) *http.Requ
 		msg.SetTo(toPeer)
 	}
 
-	req, err := msg.GetRequest(toPeer.Hostname())
+	req, err := composeRequest(msg, toPeer)
 	c.Assert(err, qt.IsNil)
 
 	return req

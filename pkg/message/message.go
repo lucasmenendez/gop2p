@@ -7,6 +7,7 @@ package message
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -50,7 +51,7 @@ type Message struct {
 	Type int          `json:"type"`
 	Data []byte       `json:"data"`
 	From *peer.Peer   `json:"from"`
-	To   []*peer.Peer `json:"to"`
+	To   []*peer.Peer `json:"to,omitempty"`
 }
 
 // SetType function sets the type of the current message to the provided one,
@@ -94,6 +95,27 @@ func (msg *Message) SetData(data []byte) *Message {
 // the format: '[from.address:from.port] data'.
 func (msg *Message) String() string {
 	return fmt.Sprintf("[%s] %s", msg.From.String(), string(msg.Data))
+}
+
+func (msg *Message) JSON() []byte {
+	if msg.From == nil || msg.From.Address == "" || msg.From.Port == 0 {
+		return nil
+	}
+
+	result, err := json.Marshal(msg)
+	if err != nil {
+		return nil
+	}
+
+	return result
+}
+
+func (msg *Message) SetJSON(data []byte) *Message {
+	if err := json.Unmarshal(data, msg); err != nil {
+		return nil
+	}
+
+	return msg
 }
 
 // GetRequest function generates a http.Request to the provided uri endpoint
