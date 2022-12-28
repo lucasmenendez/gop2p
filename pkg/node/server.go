@@ -23,7 +23,7 @@ func (n *Node) startListening() {
 	mux.HandleFunc("/sse", n.handleSSE())
 	// Listen on /forward to redirect requests from peers that can not see other
 	// network peers (like web peers).
-	mux.HandleFunc("/fwd", n.handleFrowards())
+	mux.HandleFunc("/fwd", n.handleForwards())
 
 	// Create the node HTTP server to listen to other peers requests.
 	n.server.Handler = mux
@@ -196,8 +196,23 @@ func (n *Node) handleSSE() func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func (n *Node) handleFrowards() func(http.ResponseWriter, *http.Request) {
+func (n *Node) handleForwards() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Host == n.Self.String() {
+			http.Error(w, "You can not connect with yourself.", http.StatusBadRequest)
+			return
+		}
+
+		// Set cors compatible headers when the request has OPTION method.
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
 		// Parse request to a message
 		data, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -212,8 +227,13 @@ func (n *Node) handleFrowards() func(http.ResponseWriter, *http.Request) {
 		}
 
 		// Get from peer information and validate it
-		// Parse target peers received and validate their information
+		if !n.Members.Contains(msg.From) {
+			http.Error(w, "no registered peer", http.StatusForbidden)
+			return
+		}
+
 		// Send the message to the target peers using the according way to their
 		// types of peers.
+		n.send(msg)
 	}
 }
