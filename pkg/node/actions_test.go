@@ -11,16 +11,6 @@ import (
 	"github.com/lucasmenendez/gop2p/pkg/peer"
 )
 
-func Test_setConnected(t *testing.T) {
-	c := qt.New(t)
-
-	p, _ := peer.Me(5000, false)
-	n := New(p)
-	c.Assert(n.connected, qt.IsFalse)
-	n.setConnected(true)
-	c.Assert(n.connected, qt.IsTrue)
-}
-
 func Test_connect(t *testing.T) {
 	c := qt.New(t)
 

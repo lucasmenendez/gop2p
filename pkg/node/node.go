@@ -172,14 +172,3 @@ func (n *Node) Stop() error {
 	n.server = nil
 	return nil
 }
-
-// safeClose function allows closing gracefully any Node channel avoiding
-// closing a non-opened channel.
-func safeClose[C *message.Message | *peer.Peer | *NodeErr](ch chan C) {
-	select {
-	case <-ch:
-		close(ch)
-		return
-	default:
-	}
-}

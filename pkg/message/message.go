@@ -152,7 +152,6 @@ func (msg *Message) GetRequest(uri string) (*http.Request, error) {
 	// Set the message peer information as request headers.
 	request.Header.Add(addressHeader, msg.From.Address)
 	request.Header.Add(portHeader, fmt.Sprint(msg.From.Port))
-	request.Header.Add(typeHeader, msg.From.Type)
 	request.Host = msg.From.String()
 	return request, nil
 }
@@ -195,10 +194,6 @@ func (msg *Message) FromRequest(req *http.Request) *Message {
 		return nil
 	} else if msg.From, err = peer.New(fromAddress, fromPort); err != nil {
 		return nil
-	} else if fromType := req.Header.Get(typeHeader); fromType == peer.TypeWeb {
-		msg.From.Type = peer.TypeWeb
-	} else if req.Header.Get("Connection") == "keep-alive" {
-		msg.From.Type = peer.TypeWeb
 	}
 
 	// If the message type is BroadcastType or DirectType, read the request body

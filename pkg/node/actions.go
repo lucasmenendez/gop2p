@@ -1,7 +1,6 @@
 package node
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -9,28 +8,6 @@ import (
 	"github.com/lucasmenendez/gop2p/pkg/message"
 	"github.com/lucasmenendez/gop2p/pkg/peer"
 )
-
-// setConnected function updates the current node status safely using a mutex.
-func (node *Node) setConnected(connected bool) {
-	node.connMtx.Lock()
-	defer node.connMtx.Unlock()
-	node.connected = connected
-}
-
-func composeRequest(msg *message.Message, to *peer.Peer) (*http.Request, error) {
-	encMsg := msg.JSON()
-	if encMsg == nil {
-		return nil, ParseErr("error encoding message to JSON", nil)
-	}
-	body := bytes.NewBuffer(encMsg)
-	req, err := http.NewRequest(http.MethodPost, to.Hostname(), body)
-	if err != nil {
-		return nil, ParseErr("error decoding request to message", err)
-	}
-	req.Host = msg.From.String()
-
-	return req, nil
-}
 
 // connect function allows to a node to join to a network using a knowed a peer
 // that is already into that network. The function request a connection to that
@@ -72,7 +49,7 @@ func (n *Node) connect(entryPoint *peer.Peer) *NodeErr {
 
 	// Update current members and send a connection request to all of them,
 	// discarting the response received (the list of current members).
-	for member := range receivedMembers.PeersByType(peer.TypeFull) {
+	for _, member := range receivedMembers.Peers() {
 		// If a received peer is not the same that contains the current node try
 		// to connect directly.
 		if !n.Self.Equal(member) {
@@ -128,10 +105,7 @@ func (n *Node) broadcast(msg *message.Message) *NodeErr {
 	if encMsg == nil {
 		return ParseErr("error encoding message to JSON", nil)
 	}
-	for _, ch := range n.Members.PeersByType(peer.TypeWeb) {
-		ch <- encMsg
-	}
-	for member := range n.Members.PeersByType(peer.TypeFull) {
+	for _, member := range n.Members.Peers() {
 		req, err := composeRequest(msg, member)
 		if err != nil {
 			return ParseErr("error decoding request to message", err)
@@ -164,10 +138,6 @@ func (n *Node) send(msg *message.Message) *NodeErr {
 			// Return an error if the current network does not contains the
 			// Message.To peer provided
 			return ConnErr("target peer is not into the network", nil)
-		} else if to.Type == peer.TypeWeb {
-			ch := n.Members.WebChan(to)
-			ch <- encMsg
-			return nil
 		}
 
 		// Encode message as a request and send it

@@ -6,20 +6,18 @@ import (
 	qt "github.com/frankban/quicktest"
 )
 
-func getExamples(n int) (map[*Peer]chan []byte, *Peer) {
-	examples := map[*Peer]chan []byte{}
+func getExamples(n int) []*Peer {
+	examples := []*Peer{}
 	if n <= 0 {
-		return examples, nil
+		return examples
 	}
 
-	first, _ := Me(5000, false)
-	examples[first] = nil
-	for i := 1; i < n; i++ {
+	for i := 0; i < n; i++ {
 		example, _ := Me(5000+i, false)
-		examples[example] = nil
+		examples = append(examples, example)
 	}
 
-	return examples, first
+	return examples
 }
 
 func TestNotInitializedMembers(t *testing.T) {
@@ -42,7 +40,7 @@ func TestNewMembers(t *testing.T) {
 	c := qt.New(t)
 
 	result := NewMembers()
-	c.Assert(result.peers, qt.DeepEquals, map[*Peer]chan []byte{})
+	c.Assert(result.peers, qt.DeepEquals, []*Peer{})
 	c.Assert(result.mutex, qt.IsNotNil)
 }
 
@@ -52,8 +50,8 @@ func TestMembersPeers(t *testing.T) {
 	members := NewMembers()
 	c.Assert(members.Peers(), qt.HasLen, 0)
 
-	expected, _ := getExamples(3)
-	for member := range expected {
+	expected := getExamples(3)
+	for _, member := range expected {
 		members.Append(member)
 	}
 
@@ -68,28 +66,29 @@ func TestMembersLen(t *testing.T) {
 		t.Errorf("expected 0, got %d", result.Len())
 	}
 
-	expected, first := getExamples(3)
-	for member := range expected {
+	expected := getExamples(3)
+	for _, member := range expected {
 		result.Append(member)
 	}
 	c.Assert(expected, qt.HasLen, result.Len())
 
-	result.Delete(first)
-	delete(expected, first)
+	result.Delete(expected[0])
+	expected = expected[1:]
 	c.Assert(expected, qt.HasLen, result.Len())
+	c.Assert(expected, qt.DeepEquals, result.peers)
 }
 
 func TestMembersAppend(t *testing.T) {
 	c := qt.New(t)
 
 	result := NewMembers()
-	expected, _ := getExamples(3)
-	for member := range expected {
+	expected := getExamples(3)
+	for _, member := range expected {
 		result.Append(member)
-		_, included := result.peers[member]
-		c.Assert(included, qt.IsTrue)
+		c.Assert(result.Contains(member), qt.IsTrue)
 	}
 
+	c.Assert(expected, qt.DeepEquals, result.peers)
 	c.Assert(expected, qt.HasLen, result.Len())
 }
 
@@ -97,13 +96,13 @@ func TestMembersDelete(t *testing.T) {
 	c := qt.New(t)
 
 	result := NewMembers()
-	expected, first := getExamples(3)
-	for member := range expected {
+	expected := getExamples(3)
+	for _, member := range expected {
 		result.Append(member)
 	}
 
-	result.Delete(first)
-	delete(expected, first)
+	result.Delete(expected[0])
+	expected = expected[1:]
 	c.Assert(expected, qt.DeepEquals, result.peers)
 }
 
@@ -111,12 +110,12 @@ func TestMembersContains(t *testing.T) {
 	c := qt.New(t)
 
 	result := NewMembers()
-	expected, first := getExamples(3)
-	for member := range expected {
+	expected := getExamples(3)
+	for _, member := range expected {
 		result.Append(member)
 	}
 
-	c.Assert(result.Contains(first), qt.IsTrue)
+	c.Assert(result.Contains(expected[0]), qt.IsTrue)
 	needle, _ := Me(5003, false)
 	c.Assert(result.Contains(needle), qt.IsFalse)
 }
@@ -124,25 +123,25 @@ func TestMembersContains(t *testing.T) {
 func TestMembersToJSON(t *testing.T) {
 	c := qt.New(t)
 
-	examples, first := getExamples(3)
-	address := first.Address
-	expected := []byte("[{\"port\":5000,\"address\":\"" + address + "\",\"type\":\"FULL\"}]")
+	examples := getExamples(3)
+	address := examples[0].Address
+	expected := []byte("[{\"port\":5000,\"address\":\"" + address + "\"}]")
 	members := NewMembers()
-	members.Append(first)
+	members.Append(examples[0])
 
 	result, err := members.ToJSON()
 	c.Assert(err, qt.IsNil)
 	c.Assert(expected, qt.DeepEquals, result)
 
 	members = NewMembers()
-	for example := range examples {
+	for _, example := range examples {
 		members.Append(example)
 	}
 
 	strExpected := []string{
-		"{\"port\":5000,\"address\":\"" + address + "\",\"type\":\"FULL\"}",
-		"{\"port\":5001,\"address\":\"" + address + "\",\"type\":\"FULL\"}",
-		"{\"port\":5002,\"address\":\"" + address + "\",\"type\":\"FULL\"}",
+		"{\"port\":5000,\"address\":\"" + address + "\"}",
+		"{\"port\":5001,\"address\":\"" + address + "\"}",
+		"{\"port\":5002,\"address\":\"" + address + "\"}",
 	}
 	result, err = members.ToJSON()
 	c.Assert(err, qt.IsNil)
@@ -154,18 +153,18 @@ func TestMembersToJSON(t *testing.T) {
 func TestMembersFromJSON(t *testing.T) {
 	c := qt.New(t)
 
-	examples, first := getExamples(3)
-	address := first.Address
+	examples := getExamples(3)
+	address := examples[0].Address
 	example := []byte("[{\"port\":5000,\"address\":\"" + address + "\"}]")
 	expected := NewMembers()
-	expected.Append(first)
+	expected.Append(examples[0])
 
 	result, err := expected.FromJSON(example)
 	c.Assert(err, qt.IsNil)
 	c.Assert(expected.peers, qt.DeepEquals, result.peers)
 
 	expected = NewMembers()
-	for p := range examples {
+	for _, p := range examples {
 		expected.Append(p)
 	}
 

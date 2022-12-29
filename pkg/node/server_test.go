@@ -112,7 +112,7 @@ func Test_handleRequest(t *testing.T) {
 
 		body, err = io.ReadAll(res.Body)
 		c.Assert(err, qt.IsNil)
-		c.Assert(body, qt.DeepEquals, []byte("[{\"port\":"+fmt.Sprint(p.Port)+",\"address\":\""+p.Address+"\",\"type\":\"FULL\"}]"))
+		c.Assert(body, qt.DeepEquals, []byte("[{\"port\":"+fmt.Sprint(p.Port)+",\"address\":\""+p.Address+"\"}]"))
 	})
 
 	t.Run("broadcast and direct message", func(t *testing.T) {

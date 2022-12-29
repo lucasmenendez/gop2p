@@ -1,11 +1,8 @@
 package node
 
 import (
-	"fmt"
 	"io"
-	"net"
 	"net/http"
-	"strconv"
 
 	"github.com/lucasmenendez/gop2p/pkg/message"
 	"github.com/lucasmenendez/gop2p/pkg/peer"
@@ -18,12 +15,6 @@ func (n *Node) startListening() {
 	mux := http.NewServeMux()
 	// Listen on root every request and handle it with the default node handler.
 	mux.HandleFunc("/", n.handleRequest())
-	// Listen on /sse to handle the connection with web peers (using Server Sent
-	// Events protocol)
-	mux.HandleFunc("/sse", n.handleSSE())
-	// Listen on /forward to redirect requests from peers that can not see other
-	// network peers (like web peers).
-	mux.HandleFunc("/fwd", n.handleForwards())
 
 	// Create the node HTTP server to listen to other peers requests.
 	n.server.Handler = mux
@@ -63,7 +54,7 @@ func (n *Node) handleRequest() func(http.ResponseWriter, *http.Request) {
 		w.Header().Set("Access-Control-Allow-Methods", "*")
 		w.Header().Set("Access-Control-Allow-Headers", "*")
 		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
+			http.Error(w, "No Content", http.StatusNoContent)
 			return
 		}
 
@@ -139,101 +130,5 @@ func (n *Node) handleRequest() func(http.ResponseWriter, *http.Request) {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-	}
-}
-
-func (n *Node) handleSSE() func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// Get the http.Flusher of the current response writer to stream data
-		flusher, ok := w.(http.Flusher)
-		if !ok {
-			http.Error(w, "Streaming not supported.", http.StatusInternalServerError)
-			return
-		}
-
-		// Set Server Send Events compatible headers
-		w.Header().Set("Content-Type", "text/event-stream")
-		w.Header().Set("Cache-Control", "no-cache")
-		w.Header().Set("Connection", "keep-alive")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Headers", "*")
-
-		host := r.URL.Query().Get("from")
-		if host == "" {
-			http.Error(w, "no from query parameter provided", http.StatusBadRequest)
-			return
-		}
-		fromAddress, portValue, err := net.SplitHostPort(host)
-		if err != nil {
-			http.Error(w, "error parsing from query parameter provided", http.StatusBadRequest)
-			return
-		}
-		from := new(peer.Peer)
-		from.Address = fromAddress
-		if from.Port, err = strconv.Atoi(portValue); err != nil {
-			http.Error(w, "error parsing from query parameter provided", http.StatusBadRequest)
-			return
-		}
-
-		// Handling Outbox messages chan to stream it to the client and
-		// disconnection events throught request Context Done channel.
-		msgChan := n.Members.WebChan(from)
-		for {
-			select {
-			case <-r.Context().Done():
-				close(msgChan)
-				n.Members.Delete(from)
-				if n.Members.Len() == 0 {
-					n.setConnected(false)
-				}
-				return
-			case data := <-msgChan:
-				fmt.Fprintf(w, "data: %s\n\n", data)
-				// Flush the data instead of buffering it
-				flusher.Flush()
-			}
-		}
-	}
-}
-
-func (n *Node) handleForwards() func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Host == n.Self.String() {
-			http.Error(w, "You can not connect with yourself.", http.StatusBadRequest)
-			return
-		}
-
-		// Set cors compatible headers when the request has OPTION method.
-		w.Header().Set("Access-Control-Allow-Credentials", "true")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "*")
-		w.Header().Set("Access-Control-Allow-Headers", "*")
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-
-		// Parse request to a message
-		data, err := io.ReadAll(r.Body)
-		if err != nil {
-			http.Error(w, "no valid message provided", http.StatusBadRequest)
-			return
-		}
-
-		msg := new(message.Message).SetJSON(data)
-		if msg == nil {
-			http.Error(w, "no valid message provided", http.StatusBadRequest)
-			return
-		}
-
-		// Get from peer information and validate it
-		if !n.Members.Contains(msg.From) {
-			http.Error(w, "no registered peer", http.StatusForbidden)
-			return
-		}
-
-		// Send the message to the target peers using the according way to their
-		// types of peers.
-		n.send(msg)
 	}
 }

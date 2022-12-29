@@ -19,11 +19,6 @@ const (
 	allAddresses string = "0.0.0.0"
 )
 
-const (
-	TypeFull = "FULL"
-	TypeWeb  = "WEB"
-)
-
 var (
 	ErrBadAddress  = fmt.Errorf("bad peer address provided")
 	ErrPortAddress = fmt.Errorf("bad peer port provided")
@@ -34,7 +29,6 @@ var (
 type Peer struct {
 	Port    int    `json:"port"`
 	Address string `json:"address"`
-	Type    string `json:"type"`
 }
 
 // New function creates a peer with the provided address and port as argument
@@ -49,7 +43,6 @@ func New(address string, port int) (*Peer, error) {
 	peer := &Peer{
 		Address: address,
 		Port:    port,
-		Type:    TypeFull,
 	}
 
 	if _, err := url.Parse(peer.Hostname()); err != nil {
