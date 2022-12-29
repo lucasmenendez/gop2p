@@ -73,7 +73,7 @@ func (msg *Message) SetFrom(from *peer.Peer) *Message {
 	return msg
 }
 
-// SetTo function sets the provided peer as the peer for which the current
+// SetTo function sets the provided peers as the peers for which the current
 // message is intended and returns it as result.
 func (msg *Message) SetTo(to ...*peer.Peer) *Message {
 	msg.Type = DirectType
